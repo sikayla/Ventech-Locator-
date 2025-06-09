@@ -1,4 +1,4 @@
-<<?php
+<?php
 // **1. Start Session**
 session_start();
 
@@ -369,9 +369,9 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
             font-weight: 500;
         }
 
-        /* Main Content Block */
+        /* Main Content Block - Adjusted margin-top for better spacing */
         .main-content-block {
-            margin-top: -3rem; /* Pull content up over the header background */
+            margin-top: -8rem; /* Increased to give more space from header */
             position: relative;
             z-index: 15; /* Ensure it's above the header, but below nav */
         }
@@ -381,7 +381,6 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
             position: sticky;
             top: 6rem; /* Space from top (below fixed nav) */
             align-self: flex-start; /* Aligns to the start of the flex container (top) */
-            /* Add max-height and overflow-y-auto if content can be very long */
             max-height: calc(100vh - 7rem); /* Adjust as needed */
             overflow-y: auto; /* Enable scrolling if content exceeds height */
         }
@@ -393,6 +392,8 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
             overflow: hidden;
             background-color: #fff;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            /* Added padding to prevent content from touching edges if there's no inner content */
+            padding-bottom: 1rem; /* Added padding to bottom */
         }
         .month-header {
             display: flex;
@@ -401,6 +402,8 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
             padding: 1rem;
             background-color: #f3f4f6;
             border-bottom: 1px solid #e0e0e0;
+            /* Added min-height to ensure consistent height and prevent overlapping with title */
+            min-height: 50px;
         }
         .month-header .month-change {
             padding: 0.5rem;
@@ -414,6 +417,9 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
             font-weight: 600;
             font-size: 1rem;
             color: #1f2937;
+            /* Added flex-grow to take available space and prevent overlap with buttons */
+            flex-grow: 1;
+            text-align: center; /* Center the month/year text */
         }
         .weekdays, .days {
             display: grid;
