@@ -23,9 +23,9 @@ $pass = ''; // Your database password - Consider using environment variables or 
 $charset = 'utf8mb4';
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [
-      PDO  ::ATTR_ERRMODE            =>   PDO  ::ERRMODE_EXCEPTION,
-      PDO  ::ATTR_DEFAULT_FETCH_MODE =>   PDO  ::FETCH_ASSOC,
-      PDO  ::ATTR_EMULATE_PREPARES   => false,
+      PDO::ATTR_ERRMODE            =>   PDO::ERRMODE_EXCEPTION,
+      PDO::ATTR_DEFAULT_FETCH_MODE =>   PDO::FETCH_ASSOC,
+      PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
 // **3. Get Data from Previous Page (GET Request)**
@@ -65,15 +65,15 @@ $venue_img_src = 'https://placehold.co/150x150/e2e8f0/64748b?text=No+Venue'; // 
 
 if ($venue_id > 0) { // Only try to fetch if we have a valid ID
     try {
-        $pdo = new   PDO  ($dsn, $user_db, $pass, $options);
+        $pdo = new PDO($dsn, $user_db, $pass, $options);
 
         $stmt_venue = $pdo->prepare("SELECT title, price, image_path FROM venue WHERE id = :venue_id");
-        $stmt_venue->bindParam(':venue_id', $venue_id,   PDO  ::PARAM_INT);
+        $stmt_venue->bindParam(':venue_id', $venue_id, PDO::PARAM_INT);
         $stmt_venue->execute();
-        $venue_details = $stmt_venue->fetch(  PDO  ::FETCH_ASSOC);
+        $venue_details = $stmt_venue->fetch(PDO::FETCH_ASSOC);
 
         if ($venue_details) {
-            $venue_price_per_hour = (  float  ) $venue_details['price'];
+            $venue_price_per_hour = (float) $venue_details['price'];
             $venue_title = htmlspecialchars($venue_details['title']);
             $venue_image_path = $venue_details['image_path'];
 
@@ -117,7 +117,7 @@ if ($venue_id > 0) { // Only try to fetch if we have a valid ID
             $venue_img_src = 'https://placehold.co/150x150/ef4444/ffffff?text=Not+Found';
         }
 
-    } catch (  PDOException   $e) {
+    } catch (PDOException $e) {
         error_log("Database error fetching venue details (ID: $venue_id): " . $e->getMessage());
         $errors['general'] = $errors['general'] ?? "Could not load venue details due to a database error.";
         $venue_title = "Error Loading Venue";
@@ -137,22 +137,38 @@ if ($venue_id > 0) { // Only try to fetch if we have a valid ID
 // **8. Get User ID from Session and Fetch User Details for Pre-filling**
 $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
 $user_details = null;
+$has_pending_reservation = false; // Flag to check for existing pending reservations
 
 if ($user_id && $venue_id > 0) { // Only fetch user if logged in and venue is valid
     try {
         if (!$pdo) { // Create new connection if not already established
-             $pdo = new   PDO  ($dsn, $user_db, $pass, $options);
+             $pdo = new PDO($dsn, $user_db, $pass, $options);
         }
 
         // Fetch details needed for pre-filling form from 'users' table
         $stmt_user = $pdo->prepare("SELECT client_name, email, contact_number, client_address, location FROM users WHERE id = :user_id");
-        $stmt_user->bindParam(':user_id', $user_id,   PDO  ::PARAM_INT);
+        $stmt_user->bindParam(':user_id', $user_id, PDO::PARAM_INT);
         $stmt_user->execute();
-        $user_details = $stmt_user->fetch(  PDO  ::FETCH_ASSOC);
+        $user_details = $stmt_user->fetch(PDO::FETCH_ASSOC);
 
-    } catch (  PDOException   $e) {
-        error_log("Database error fetching user details (ID: $user_id): " . $e->getMessage());
+        // ** Check for existing pending reservations for this user and venue **
+        // 'pending' status assumed. Adjust column name and status value as per your database schema.
+        $stmt_pending = $pdo->prepare("SELECT COUNT(*) FROM reservations WHERE user_id = :user_id AND venue_id = :venue_id AND status = 'Pending'");
+        $stmt_pending->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+        $stmt_pending->bindParam(':venue_id', $venue_id, PDO::PARAM_INT);
+        $stmt_pending->execute();
+        $pending_count = $stmt_pending->fetchColumn();
+
+        if ($pending_count > 0) {
+            $has_pending_reservation = true;
+            $errors['general'] = "You already have a pending reservation for " . htmlspecialchars($venue_title) . ". Please wait for its approval or manage it from your dashboard.";
+        }
+
+
+    } catch (PDOException $e) {
+        error_log("Database error fetching user details or checking pending reservations (ID: $user_id): " . $e->getMessage());
         // Don't show error to user, just proceed without pre-filling
+        $errors['general'] = $errors['general'] ?? "A database error occurred. Cannot check for existing reservations.";
     }
 }
 
@@ -166,7 +182,7 @@ $pdo = null;
 
 // **11. Determine Default Values for Form Fields**
 // Prioritize submitted data (if errors occurred), then logged-in user data, then GET data (for date), then empty
-function   get_value($field_name, $default = '') {
+function get_value($field_name, $default = '') {
     global $form_data, $user_details;
     if (!empty($form_data[$field_name])) {
         return htmlspecialchars($form_data[$field_name]);
@@ -211,7 +227,7 @@ $voucher_value = get_value('voucher_code');
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/ventech_locator/css/venue_reservation_form.css">
     <style>
-       
+
     </style>
 </head>
 <body>
@@ -253,6 +269,9 @@ $voucher_value = get_value('voucher_code');
                             <?php endif; ?>
                              <?php // Display specific field errors from $errors array if needed, though they are also shown below fields ?>
                         </ul>
+                         <?php if ($has_pending_reservation && $user_id): // Show dashboard link if pending reservation exists ?>
+                            <p class="mt-2 text-xs">You can manage your existing reservation from your <a href="client_dashboard.php" class="font-medium underline hover:text-red-400">dashboard</a>.</p>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
@@ -267,7 +286,7 @@ $voucher_value = get_value('voucher_code');
                     </div>
                 <?php else: // Show the form only if there's no success message and no fatal error preventing form display ?>
 
-                    <?php if ($venue_id > 0 && $venue_price_per_hour >= 0) : // Only show form sections if venue details are valid ?>
+                    <?php if ($venue_id > 0 && $venue_price_per_hour >= 0 && !$has_pending_reservation) : // Only show form sections if venue details are valid and no pending reservation ?>
 
                      <div id="reservation-summary" class="form-section mb-6 hidden">
                          <h2 class="form-section-title flex justify-between items-center">
@@ -441,25 +460,28 @@ $voucher_value = get_value('voucher_code');
                         </div>
 
                         <div class="mt-6 text-center">
-                            <button type="submit" id="submit-button" class="btn btn-primary w-full md:w-auto" <?= ($venue_id <= 0 || $venue_price_per_hour < 0) ? 'disabled' : '' ?>>
+                            <button type="submit" id="submit-button" class="btn btn-primary w-full md:w-auto" <?= ($venue_id <= 0 || $venue_price_per_hour < 0 || $has_pending_reservation) ? 'disabled' : '' ?>>
                                 <i class="fas fa-paper-plane mr-2"></i> Submit Reservation Request
                             </button>
                             <?php if ($venue_id <= 0 || $venue_price_per_hour < 0): ?>
                                 <p class="text-xs text-red-400 mt-2">Cannot submit: Invalid venue details or price.</p>
+                            <?php endif; ?>
+                            <?php if ($has_pending_reservation): ?>
+                                <p class="text-xs text-red-400 mt-2">Cannot submit: You have a pending reservation for this venue.</p>
                             <?php endif; ?>
                         </div>
 
                     </form>
 
                     <div id="responseMessage" class="mt-2 text-green-400 font-semibold text-xs"></div>
-                    <?php else: // Show message if venue details couldn't be loaded ?>
+                    <?php else: // Show message if venue details couldn't be loaded or pending reservation exists ?>
                         <div class="form-section text-center">
                             <p class="text-red-400 font-semibold text-xs">
                                  <i class="fas fa-exclamation-triangle mr-2"></i>
                                  Could not load reservation form. <?= isset($errors['general']) ? htmlspecialchars($errors['general']) : 'Please select a valid venue first.' ?>
                              </p>
                         </div>
-                    <?php endif; // End check for valid venue details ?>
+                    <?php endif; // End check for valid venue details and pending reservation ?>
                 <?php endif; // End of hiding form on success ?>
 
             </div>
@@ -481,11 +503,11 @@ $voucher_value = get_value('voucher_code');
 
     <script>
         // The AJAX submission script remains the same
-        document.getElementById('reservationForm').addEventListener('submit',  function ( e ) {
+        document.getElementById('reservationForm').addEventListener('submit', function (e) {
             e.preventDefault(); // Prevent default form submission
 
-             const  form = e.target;
-             const  formData = new FormData(form);
+             const form = e.target;
+             const formData = new FormData(form);
 
             fetch('reservation_manage.php', {
                 method: 'POST',
@@ -494,59 +516,77 @@ $voucher_value = get_value('voucher_code');
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then( response   =>  response.text())
-            .then( data   =>  {
-                 const  trimmed = data.trim(); // Remove extra spaces or newlines
+            .then(response => response.text())
+            .then(data => {
+                 const trimmed = data.trim(); // Remove extra spaces or newlines
 
                 if (trimmed === 'success') {
-                    alert("Successfully submitted, waiting for the confirmation.");
-                    form.reset(); // Reset the form
-                    window.location.href = 'users/user_dashboard.php'; // Redirect
+                    // Replaced alert with a custom message box or redirect for better UX
+                    // For now, redirecting immediately as per original code for success
+                    window.location.href = 'users/user_dashboard.php'; // Redirect to user dashboard on success
                 } else {
-                    alert("An error occurred: " + trimmed);
+                    // Display error message from server
+                    // You might want to update a specific div with ID 'responseMessage'
+                    // instead of an alert for a better user experience.
+                    const responseMessageEl = document.getElementById('responseMessage');
+                    if (responseMessageEl) {
+                        responseMessageEl.textContent = "Error: " + trimmed;
+                        responseMessageEl.classList.remove('text-green-400');
+                        responseMessageEl.classList.add('text-red-400');
+                    } else {
+                         alert("An error occurred: " + trimmed); // Fallback to alert if no specific div
+                    }
                 }
             })
-            .catch( error   =>  {
+            .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while submitting the reservation.');
+                const responseMessageEl = document.getElementById('responseMessage');
+                if (responseMessageEl) {
+                    responseMessageEl.textContent = 'An error occurred while submitting the reservation.';
+                    responseMessageEl.classList.remove('text-green-400');
+                    responseMessageEl.classList.add('text-red-400');
+                } else {
+                    alert('An error occurred while submitting the reservation.'); // Fallback to alert
+                }
             });
         });
 
 
         // The summary calculation script remains the same
-        document.addEventListener('DOMContentLoaded',  function () {
-             const  eventDateInput = document.getElementById('event-date');
-             const  startTimeInput = document.getElementById('start-time');
-             const  endTimeInput = document.getElementById('end-time');
-             const  summarySection = document.getElementById('reservation-summary');
-             const  submitButton = document.getElementById('submit-button');
+        document.addEventListener('DOMContentLoaded', function () {
+             const eventDateInput = document.getElementById('event-date');
+             const startTimeInput = document.getElementById('start-time');
+             const endTimeInput = document.getElementById('end-time');
+             const summarySection = document.getElementById('reservation-summary');
+             const submitButton = document.getElementById('submit-button');
+             const hasPendingReservation = <?= json_encode($has_pending_reservation); ?>; // PHP variable to JS
 
             // Summary elements
-             const  summaryDateEl = document.getElementById('summary-event-date');
-             const  summaryStartEl = document.getElementById('summary-start-time');
-             const  summaryEndEl = document.getElementById('summary-end-time');
-             const  summaryTotalCostEl = document.getElementById('summary-total-cost');
-             const  summaryErrorEl = document.getElementById('summary-error');
-             const  venuePriceEl = document.getElementById('summary-venue-price');
-             const  venuePricePerHour = parseFloat(venuePriceEl?.dataset.price || 0); // Use actual price from PHP
+             const summaryDateEl = document.getElementById('summary-event-date');
+             const summaryStartEl = document.getElementById('summary-start-time');
+             const summaryEndEl = document.getElementById('summary-end-time');
+             const summaryTotalCostEl = document.getElementById('summary-total-cost');
+             const summaryErrorEl = document.getElementById('summary-error');
+             const venuePriceEl = document.getElementById('summary-venue-price');
+             const venuePricePerHour = parseFloat(venuePriceEl?.dataset.price || 0); // Use actual price from PHP
 
              // Time validation error message element
-              const  timeValidationErrorEl = document.getElementById('time-validation-error');
+              const timeValidationErrorEl = document.getElementById('time-validation-error');
 
             // Function to format time (e.g., 14:30 -> 2:30 PM)
-             function  formatTime( timeString ) {
+             function formatTime(timeString) {
                 if (!timeString) return '--';
-                 const  [hours, minutes] = timeString.split(':');
-                 const  date = new Date();
+                 const [hours, minutes] = timeString.split(':');
+                 const date = new Date();
                 date.setHours(hours, minutes, 0);
                 return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
             }
 
              // Function to format date (e.g., 2024-12-31 -> Dec 31, 2024)
-             function  formatDate( dateString ) {
+             function formatDate(dateString) {
                 if (!dateString) return '--';
                 try {
-                     const  date = new Date(dateString + 'T00:00:00'); // Avoid timezone issues by specifying time
+                     const date = new Date(dateString + 'T00:00:00'); // Avoid timezone issues by specifying time
                     return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
                 } catch (e) {
                     console.error("Error formatting date:", e);
@@ -556,15 +596,15 @@ $voucher_value = get_value('voucher_code');
 
 
             // Function to calculate duration in hours
-             function  calculateDuration( start ,  end ) {
+             function calculateDuration(start, end) {
                 if (!start || !end) return 0;
                 try {
-                     const  startDate = new Date(`1970-01-01T${start}:00`);
-                         const  endDate = new Date(`1970-01-01T${end}:00`);
+                     const startDate = new Date(`1970-01-01T${start}:00`);
+                         const endDate = new Date(`1970-01-01T${end}:00`);
                     if (isNaN(startDate) || isNaN(endDate) || endDate <= startDate) {
                         return 0; // Invalid or end time not after start time
                     }
-                     const  diffMillis = endDate - startDate;
+                     const diffMillis = endDate - startDate;
                     return diffMillis / (1000 * 60 * 60); // Convert milliseconds to hours
                 } catch (e) {
                      console.error("Error calculating duration:", e);
@@ -573,17 +613,17 @@ $voucher_value = get_value('voucher_code');
             }
 
             // Function to update summary and total cost
-             function  updateSummary() {
-                  const  eventDate = eventDateInput.value;
-                 const  startTime = startTimeInput.value;
-                 const  endTime = endTimeInput.value;
-                 let  isTimeValid = true;
-                  let  timeErrorMsg = '';
+             function updateSummary() {
+                  const eventDate = eventDateInput.value;
+                 const startTime = startTimeInput.value;
+                 const endTime = endTimeInput.value;
+                 let isTimeValid = true;
+                  let timeErrorMsg = '';
 
                 // Basic validation: End time must be after start time
                 if (startTime && endTime) {
-                      const  startDate = new Date(`1970-01-01T${startTime}:00`);
-                     const  endDate = new Date(`1970-01-01T${endTime}:00`);
+                      const startDate = new Date(`1970-01-01T${startTime}:00`);
+                     const endDate = new Date(`1970-01-01T${endTime}:00`);
                      if (endDate <= startDate) {
                          isTimeValid = false;
                          timeErrorMsg = 'End time must be after start time.';
@@ -605,15 +645,16 @@ $voucher_value = get_value('voucher_code');
                 if (eventDate && startTime && endTime && isTimeValid && venuePricePerHour >= 0) {
                     summarySection.classList.remove('hidden');
 
-                     const  durationHours = calculateDuration(startTime, endTime);
-                     const  totalCost = durationHours * venuePricePerHour;
+                     const durationHours = calculateDuration(startTime, endTime);
+                     const totalCost = durationHours * venuePricePerHour;
 
                     summaryDateEl.textContent = formatDate(eventDate);
                     summaryStartEl.textContent = formatTime(startTime);
                     summaryEndEl.textContent = formatTime(endTime);
                     summaryTotalCostEl.textContent = `₱ ${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     summaryErrorEl.textContent = ''; // Clear previous errors
-                    submitButton.disabled = false; // Enable submit button
+                    // Only enable submit button if no pending reservation
+                    submitButton.disabled = hasPendingReservation;
 
                 } else {
                     // Hide summary or show placeholder text if inputs are incomplete/invalid
@@ -622,12 +663,14 @@ $voucher_value = get_value('voucher_code');
                     summaryStartEl.textContent = '--';
                     summaryEndEl.textContent = '--';
                     summaryTotalCostEl.textContent = '₱ 0.00';
-                    submitButton.disabled = true; // Disable submit button if times invalid
+                    submitButton.disabled = true; // Disable submit button if times invalid or pending reservation
 
                     if (!isTimeValid && timeErrorMsg) {
                         summaryErrorEl.textContent = timeErrorMsg;
                     } else if (venuePricePerHour < 0){
                          summaryErrorEl.textContent = 'Invalid venue price.';
+                     } else if (hasPendingReservation) {
+                         summaryErrorEl.textContent = 'You have a pending reservation for this venue.';
                      } else {
                          summaryErrorEl.textContent = 'Please select date and valid start/end times.';
                     }
@@ -640,7 +683,16 @@ $voucher_value = get_value('voucher_code');
             endTimeInput.addEventListener('change', updateSummary);
 
             // Initial summary update on page load (in case of pre-filled values)
+            // Also check for pending reservation status on load
             updateSummary();
+            if (hasPendingReservation) {
+                submitButton.disabled = true;
+                // Add a message to the user that they have a pending reservation
+                const pendingMsgEl = document.createElement('p');
+                pendingMsgEl.className = 'text-xs text-red-400 mt-2';
+                pendingMsgEl.textContent = 'You already have a pending reservation for this venue. Please manage it from your dashboard.';
+                submitButton.parentNode.appendChild(pendingMsgEl);
+            }
 
              // Optional: Add form submission validation here if needed before sending to PHP
              /*
@@ -700,5 +752,4 @@ $voucher_value = get_value('voucher_code');
 
 </body>
 </html>
-
 

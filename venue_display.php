@@ -371,7 +371,7 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
 
         /* Main Content Block - Adjusted margin-top for better spacing */
         .main-content-block {
-            margin-top: 2rem; /* Adjusted to prevent overlap with header */
+            margin-top: -8rem; /* Increased to give more space from header */
             position: relative;
             z-index: 15; /* Ensure it's above the header, but below nav */
         }
@@ -1120,7 +1120,7 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
             if (!mapDiv) return;
 
             // Check for valid, non-zero coordinates
-            if (!venueLat || !venueLon || isNaN(parseFloat(venueLat)) || parseFloat(venueLat) === 0 || isNaN(parseFloat(venueLon)) || parseFloat(lonNum) === 0) {
+            if (!venueLat || !venueLon || isNaN(parseFloat(venueLat)) || parseFloat(venueLat) === 0 || isNaN(parseFloat(venueLon)) || parseFloat(venueLon) === 0) {
                 mapDiv.innerHTML = '<p class="text-center text-gray-500 p-4">Map location not available or invalid coordinates.</p>';
                 return;
             }

@@ -341,3 +341,6 @@
                    font-size: 0.85rem;
                }
            }
+           .bg-white.shadow-xl.rounded-lg.p-6.md\:p-8.mb-8 {
+                 margin-top: 20%;
+                }
