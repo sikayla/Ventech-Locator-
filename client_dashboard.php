@@ -3,7 +3,7 @@
 session_start();
 
 // **2. Include Database Connection**
-require_once 'includes/db_connection.php';
+require_once 'includes/db_connection.php'; // Ensure this path is correct based on your setup
 
 // **3. Check User Authentication**
 if (!isset($_SESSION['user_id'])) {
@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 $loggedInOwnerUserId = $_SESSION['user_id'];
 
 // **4. Check if PDO connection is available**
-if (!isset($pdo) || !$pdo instanceof  PDO) {
+if (!isset($pdo) || !$pdo instanceof PDO) {
     error_log("PDO connection not available in client_dashboard.php");
     die("Sorry, we're experiencing technical difficulties with the database. Please try again later.");
 }
@@ -31,7 +31,8 @@ try {
         header("Location: client_login.php?error=invalid_session"); // Adjust path
         exit;
     }
-    if ($owner['role'] !== 'client' && $owner['role'] !== 'admin' && $owner['role'] !== 'owner') { // Added 'owner' role check
+    // IMPORTANT: Ensure the user's role is 'owner' for this dashboard
+    if ($owner['role'] !== 'owner') {
          error_log("User ID {$loggedInOwnerUserId} attempted to access client dashboard with role: {$owner['role']}");
          session_unset();
          session_destroy();
@@ -270,6 +271,7 @@ $clientProfilePath = '/ventech_locator/client/client_profile.php';
 $reservationManagePath = '/ventech_locator/reservation_manage.php'; // Adjusted for client
 $clientNotificationListPath = '/ventech_locator/client/client_notification_list.php';
 $clientNotificationEndpoint = '/ventech_locator/client/client_notification.php'; // For JS fetch
+$ownerChatInterfacePath = '/ventech_locator/users/owner_chat_interface.php'; // NEW: Path to owner chat
 
 // Path for venue_display.php and edit_venue.php
 $venueDisplayPath = '/ventech_locator/venue_display.php';
@@ -288,9 +290,29 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
     <!-- Use Montserrat for headings, Open Sans for body as per user_dashboard.php -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Open+Sans&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="/ventech_locator/css/client_dashboard.css">
-    
+
     <style>
-       
+        .notification-icon-container {
+            position: relative;
+            display: inline-block;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ef4444; /* Red color */
+            color: white;
+            border-radius: 9999px; /* Full rounded */
+            padding: 2px 6px;
+            font-size: 0.75rem; /* text-xs */
+            font-weight: bold;
+            min-width: 20px; /* Ensure badge is wide enough for 1-2 digits */
+            text-align: center;
+            line-height: 1; /* Adjust line height for better vertical alignment */
+            display: flex; /* Use flexbox for centering */
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body class="bg-white text-gray-900">
@@ -317,7 +339,7 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
 
         <nav class="hidden md:flex items-center space-x-4 text-xs sm:text-sm text-gray-900 font-normal">
             <ul class="flex items-center space-x-4">
-        
+
                 <li class="cursor-pointer hover:underline hover:text-[#ff5722]">
                     <a href="javascript:void(0);" onclick="openAddVenueModal();">Add Venue</a>
                 </li>
@@ -344,6 +366,14 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
                             <?php else: ?>
                                 <span id="client-notification-count-badge" class="notification-badge" style="display: none;">0</span>
                             <?php endif; ?>
+                        </div>
+                    </li>
+                    <li class="relative group cursor-pointer ml-4"> <!-- NEW: Chat Notification -->
+                        <div class="notification-icon-container inline-block">
+                            <a href="<?php echo htmlspecialchars($ownerChatInterfacePath); ?>" class="text-gray-700 hover:text-[#ff5722] transition-colors" title="View Chat Messages">
+                                <i class="fas fa-comments text-xl"></i>
+                            </a>
+                            <span id="chat-notification-count-badge" class="notification-badge" style="display: none;">0</span>
                         </div>
                     </li>
                     <li class="cursor-pointer">
@@ -379,6 +409,12 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
                     <?php if ($pending_reservations_count > 0): ?>
                         <span class="ml-auto bg-[#ef4444] text-white text-xs font-bold px-2 py-1 rounded-full"><?= htmlspecialchars($pending_reservations_count) ?></span>
                     <?php endif; ?>
+                </a>
+            </li>
+            <li class="border-t border-gray-200 pt-2 mt-2"> <!-- NEW: Mobile Chat Link -->
+                <a href="<?php echo htmlspecialchars($ownerChatInterfacePath); ?>" class="block py-2 px-3 hover:bg-gray-100 rounded flex items-center">
+                    Chat Messages
+                    <span id="mobile-chat-notification-count-badge" class="ml-auto bg-[#ef4444] text-white text-xs font-bold px-2 py-1 rounded-full" style="display: none;">0</span>
                 </a>
             </li>
             <li>
@@ -751,7 +787,7 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
         </div>
     </div>
 
-    <!-- Chatbot Bubble and Window -->
+    <!-- Chatbot Bubble and Window (Existing AI Assistant, separate from new owner-user chat) -->
     <div id="chat-bubble" class="chat-bubble">
         <i class="fas fa-comments"></i>
     </div>
@@ -783,8 +819,7 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
 
             // Client-specific notification count (pending reservations)
             function fetchClientNotificationCount() {
-                // Assuming you have an endpoint for this, e.g., '/ventech_locator/client/get_pending_reservations_count.php'
-                // For now, it's PHP-rendered, but if you want dynamic updates:
+                // This badge is now populated by PHP on load, but JS could dynamically update if needed
                 // fetch('/ventech_locator/client/get_pending_reservations_count.php')
                 //     .then(response => response.json())
                 //     .then(data => {
@@ -801,10 +836,48 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
                 //     .catch(error => console.error('Error fetching client notification count:', error));
             }
 
-            // Initial check for notification badge (it's populated by PHP on load)
-            // If you later implement dynamic updates, uncomment the fetchClientNotificationCount calls.
-            // fetchClientNotificationCount();
-            // setInterval(fetchClientNotificationCount, 30000); // Check every 30 seconds
+            // NEW: Fetch unread chat messages count for the owner
+            function fetchUnreadChatMessagesCount() {
+                const chatBadgeDesktop = document.getElementById('chat-notification-count-badge');
+                const chatBadgeMobile = document.getElementById('mobile-chat-notification-count-badge');
+
+                fetch('/ventech_locator/users/ajax_get_unread_chat_count.php') // Endpoint to get unread count
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success' && data.unread_count !== undefined) {
+                            const count = parseInt(data.unread_count);
+                            if (chatBadgeDesktop) {
+                                if (count > 0) {
+                                    chatBadgeDesktop.textContent = count;
+                                    chatBadgeDesktop.style.display = 'flex'; // Use flex for centering text
+                                } else {
+                                    chatBadgeDesktop.style.display = 'none';
+                                }
+                            }
+                            if (chatBadgeMobile) {
+                                if (count > 0) {
+                                    chatBadgeMobile.textContent = count;
+                                    chatBadgeMobile.style.display = 'flex'; // Use flex for centering text
+                                } else {
+                                    chatBadgeMobile.style.display = 'none';
+                                }
+                            }
+                        } else {
+                            console.error('Error in unread chat count response:', data.message);
+                        }
+                    })
+                    .catch(error => console.error('Network error fetching unread chat count:', error));
+            }
+
+
+            // Initial calls for notifications
+            fetchClientNotificationCount(); // For pending reservations (PHP-rendered)
+            fetchUnreadChatMessagesCount(); // For chat messages (AJAX)
+
+            // Set intervals for periodic updates (e.g., every 10 seconds)
+            // setInterval(fetchClientNotificationCount, 10000); // If you want to make pending reservations dynamic
+            setInterval(fetchUnreadChatMessagesCount, 10000); // Update chat notification every 10 seconds
+
 
             // Modal elements
             const addVenueModal = document.getElementById('addVenueModal');
@@ -916,11 +989,11 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
                 });
             }
 
-            // --- Chatbot Logic (Copied from user_dashboard.php) ---
+            // --- Chatbot Logic (Copied from user_dashboard.php - This is for AI Assistant) ---
             const chatBubble = document.getElementById('chat-bubble');
             const chatWindow = document.getElementById('chat-window');
             const closeChatBtn = document.getElementById('close-chat');
-            const chatMessages = document.getElementById('chat-messages');
+            const chatMessages = document.getElementById('chat-messages'); // This is the AI chat window's messages div
             const chatInput = document.getElementById('chat-input');
             const sendChatBtn = document.getElementById('send-chat');
 
@@ -937,7 +1010,8 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
             chatBubble.addEventListener('click', () => {
                 chatWindow.classList.toggle('open');
                 if (chatWindow.classList.contains('open')) {
-                    if (chatMessages.children.length === 0) {
+                    if (chatMessages.children.length === 0 || chatMessages.children[0].textContent !== chatHistory[0].parts[0].text) {
+                        chatMessages.innerHTML = ''; // Clear if it was used for something else or empty
                         appendMessage(chatHistory[0].parts[0].text, 'bot');
                     }
                     chatInput.focus();

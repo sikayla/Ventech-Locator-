@@ -245,20 +245,18 @@ CREATE TABLE IF NOT EXISTS conversations (
 
 -- MESSAGES TABLE
 -- Stores individual messages within a conversation.
-CREATE TABLE IF NOT EXISTS messages (
+CREATE TABLE IF NOT EXISTS chat_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    conversation_id INT NOT NULL, -- Foreign key to the conversations table
-    sender_id INT NOT NULL,       -- The user who sent the message
-    receiver_id INT NOT NULL,     -- The user who received the message
-    message_content TEXT NOT NULL, -- The actual message text
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_read BOOLEAN NOT NULL DEFAULT FALSE, -- Track if the message has been read by the receiver
+    sender_id INT NOT NULL COMMENT 'FK to users.id',
+    receiver_id INT NOT NULL COMMENT 'FK to users.id',
+    message_text TEXT NOT NULL,
+    timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Renamed from 'sent_at' for consistency with chat PHP
+    is_read TINYINT(1) NOT NULL DEFAULT '0' COMMENT '0 = unread, 1 = read',
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX idx_sender_receiver_timestamp (sender_id, receiver_id, timestamp),
+    INDEX idx_receiver_is_read (receiver_id, is_read) -- Useful for fetching unread count
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
-    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
 
-    INDEX idx_conversation_id (conversation_id),
-    INDEX idx_sender_receiver (sender_id, receiver_id),
-    INDEX idx_is_read (is_read)
-) ENGINE=InnoDB;
+
