@@ -335,6 +335,7 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 10; /* Lower z-index than main-content-block */
         }
         .venue-header-bg, .venue-header-bg-iframe {
             position: absolute;
@@ -371,7 +372,7 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
 
         /* Main Content Block - Adjusted margin-top for better spacing */
         .main-content-block {
-            margin-top: -8rem; /* Increased to give more space from header */
+            margin-top: 2rem; /* Changed from -8rem to 2rem to prevent overlap */
             position: relative;
             z-index: 15; /* Ensure it's above the header, but below nav */
         }
@@ -744,7 +745,13 @@ function generateCalendarPHP($year, $month, $unavailableDates, $today) {
 
 
         /* Responsive adjustments for chat modal */
-        @media (max-width: 768px) {
+        @media (max-width: 767px) { /* Adjusted breakpoint for consistency */
+            .main-content-block {
+                margin-top: 1rem; /* Changed from -4rem to 1rem for mobile */
+                padding-top: 1rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
             .chat-modal-body {
                 flex-direction: column; /* Stack contacts and conversation on small screens */
             }
