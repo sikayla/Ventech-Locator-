@@ -77,15 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['venue_id'], $_POST['s
         $end_timestamp = strtotime($_POST['end_time']);
 
         // Validate times
-        // If end time is earlier than or same as start time, assume next day for overnight bookings
         if ($end_timestamp <= $start_timestamp) {
-             // If duration is 0 (same start/end time), still an error
-            if ($end_timestamp === $start_timestamp) {
-                echo 'Error: End time cannot be the same as start time.';
-                exit;
-            }
-            // Assume booking goes into next day if end_time is earlier
-            $end_timestamp += (24 * 60 * 60); // Add 24 hours in seconds
+            echo 'Error: End time must be after start time.';
+            exit;
         }
 
         // Get venue details including price per hour from the database
@@ -102,24 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['venue_id'], $_POST['s
 
             // Ensure duration is positive and calculate cost
             if ($duration_in_hours > 0) {
-
-                // --- NEW: Check for existing pending reservation for the logged-in user and this venue ---
-                $user_id_for_reservation = $_POST['user_id'] ?? null; // Get user_id from POST data
-
-                if ($user_id_for_reservation) { // Only perform this check if a user is logged in
-                    $stmt_check_pending = $pdo->prepare("SELECT COUNT(*) FROM venue_reservations WHERE user_id = :user_id AND venue_id = :venue_id AND status = 'pending'");
-                    $stmt_check_pending->bindParam(':user_id', $user_id_for_reservation, PDO::PARAM_INT);
-                    $stmt_check_pending->bindParam(':venue_id', $_POST['venue_id'], PDO::PARAM_INT);
-                    $stmt_check_pending->execute();
-                    $pending_count = $stmt_check_pending->fetchColumn();
-
-                    if ($pending_count > 0) {
-                        echo "You already have a pending reservation for this venue. Please wait for its approval.";
-                        exit(); // Stop execution and prevent duplicate booking
-                    }
-                }
-                // --- END NEW CHECK ---
-
                 $total_cost = $venue_price_per_hour * $duration_in_hours;
 
                 // Insert reservation with calculated total cost AND price per hour
@@ -133,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['venue_id'], $_POST['s
                 // Ensure all parameters expected by the INSERT statement are bound
                  $reservationStmt->execute([
                     ':venue_id' => $_POST['venue_id'],
-                    ':user_id' => $user_id_for_reservation, // Use the user ID derived from POST or null
+                    ':user_id' => $_POST['user_id'] ?? null, // Use null if user_id is not set (e.g., not logged in)
                     ':event_date' => $_POST['event_date'],
                     ':start_time' => $_POST['start_time'],
                     ':end_time' => $_POST['end_time'],

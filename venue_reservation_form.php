@@ -87,8 +87,26 @@ if ($venue_id > 0) { // Only try to fetch if we have a valid ID
                     $venue_img_src = htmlspecialchars($venue_image_path); // Use URL directly
                 } else {
                     // Construct full path assuming relative path from uploadsBaseUrl
+                    // Ensure DOCUMENT_ROOT is set and reliable in your environment
                     $potential_file_path = ($uploadsBaseUrl . ltrim($venue_image_path, '/'));
-                    $venue_img_src = htmlspecialchars($potential_file_path);
+                    // Basic check if file might exist - more robust checks might be needed
+                     // Use relative path if needed, adjust based on server setup
+                     $venue_img_src = htmlspecialchars($potential_file_path);
+
+                     // Optional: Check if file exists physically (can be slow, use with caution)
+                     /*
+                     if (isset($_SERVER['DOCUMENT_ROOT'])) {
+                          $full_physical_path = $_SERVER['DOCUMENT_ROOT'] . $potential_file_path;
+                          if (file_exists($full_physical_path)) {
+                              $venue_img_src = htmlspecialchars($potential_file_path);
+                          } else {
+                              error_log("Venue image file not found: " . $full_physical_path);
+                          }
+                     } else {
+                          // If document root not available, assume path is correct or use placeholder
+                           $venue_img_src = htmlspecialchars($potential_file_path); // Or keep placeholder
+                     }
+                     */
                 }
             }
         } else {
@@ -135,7 +153,7 @@ if ($user_id && $venue_id > 0) { // Only fetch user if logged in and venue is va
 
         // ** Check for existing pending reservations for this user and venue **
         // 'pending' status assumed. Adjust column name and status value as per your database schema.
-        $stmt_pending = $pdo->prepare("SELECT COUNT(*) FROM venue_reservations WHERE user_id = :user_id AND venue_id = :venue_id AND status = 'pending'");
+        $stmt_pending = $pdo->prepare("SELECT COUNT(*) FROM reservations WHERE user_id = :user_id AND venue_id = :venue_id AND status = 'Pending'");
         $stmt_pending->bindParam(':user_id', $user_id, PDO::PARAM_INT);
         $stmt_pending->bindParam(':venue_id', $venue_id, PDO::PARAM_INT);
         $stmt_pending->execute();
@@ -172,16 +190,11 @@ function get_value($field_name, $default = '') {
     // Map user details to form fields for pre-filling
     if ($user_details) {
         switch ($field_name) {
-            case 'first_name':
-                // Attempt to split client_name into first and last if it contains a space
-                $client_name_parts = explode(' ', $user_details['client_name'] ?? '', 2);
-                return htmlspecialchars($client_name_parts[0] ?? '');
-            case 'last_name':
-                 $client_name_parts = explode(' ', $user_details['client_name'] ?? '', 2);
-                return htmlspecialchars($client_name_parts[1] ?? ''); // Second part is last name
+            case 'first_name': return htmlspecialchars($user_details['client_name'] ?? ''); // Use client_name for first_name
+            case 'last_name': return ''; // No last name field in users table
             case 'email': return htmlspecialchars($user_details['email'] ?? '');
             case 'mobile_number': return htmlspecialchars($user_details['contact_number'] ?? '');
-            case 'address': return htmlspecialchars($user_details['client_address'] ?? $user_details['location'] ?? ''); // Prefer client_address, fallback to location
+             case 'address': return htmlspecialchars($user_details['client_address'] ?? $user_details['location'] ?? ''); // Prefer client_address, fallback to location
             // case 'country': return htmlspecialchars($user_details['country'] ?? 'Philippines'); // Default to Philippines if not set
             // Add more mappings if needed
         }
@@ -214,365 +227,6 @@ $voucher_value = get_value('voucher_code');
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/ventech_locator/css/venue_reservation_form.css">
     <style>
-        /* General body and font styles */
-        body {
-            font-family: 'Inter', sans-serif; /* Using Inter as specified by default */
-            background-color: #121212; /* Dark background */
-            color: #e0e0e0; /* Light text for readability */
-        }
-
-        /* Main Container */
-        .main-container {
-            display: flex;
-            min-height: 100vh;
-            background-color: #121212; /* Ensure consistent background */
-        }
-
-        /* Content Container (Form + Summary) */
-        .content-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 1200px; /* Max width for content */
-            margin: 0 auto; /* Center content */
-            background-color: #1a1a1a; /* Slightly lighter dark background for content */
-            border-radius: 8px; /* Rounded corners */
-            overflow: hidden; /* Ensure rounded corners are applied */
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); /* Subtle shadow */
-        }
-
-        @media (min-width: 768px) {
-            .content-container {
-                flex-direction: row; /* Side-by-side on larger screens */
-            }
-        }
-
-        /* Form and Summary Column */
-        .form-and-summary-column {
-            flex-grow: 1;
-            padding: 2.5rem; /* Increased padding */
-            color: #e0e0e0; /* Light text */
-            position: relative; /* For back link positioning */
-        }
-
-        /* Image Column (for decorative image) */
-        .image-column {
-            display: none; /* Hidden by default on small screens */
-            flex-shrink: 0;
-            width: 40%; /* 40% width on larger screens */
-            position: relative;
-            background-color: #2a2a2a; /* Dark placeholder for image */
-            overflow: hidden;
-        }
-
-        .image-column img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .image-overlay-text {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
-            color: white;
-            padding: 2rem 1.5rem;
-            font-size: 1.5rem;
-            line-height: 1.3;
-            text-align: center;
-            font-weight: 300;
-        }
-
-        .image-overlay-text .font-semibold {
-            font-size: 2rem;
-            display: block;
-        }
-
-        @media (min-width: 768px) {
-            .image-column {
-                display: block; /* Show on larger screens */
-            }
-            .form-and-summary-column {
-                width: 60%; /* 60% width for form on larger screens */
-            }
-        }
-
-
-        /* Back Link */
-        .back-link {
-            position: absolute;
-            top: 1.5rem;
-            left: 2.5rem;
-            display: inline-flex;
-            align-items: center;
-            color: #9ca3af; /* gray-400 */
-            font-size: 0.875rem; /* text-sm */
-            font-weight: 500;
-            text-decoration: none;
-            transition: color 0.2s ease-in-out;
-        }
-        .back-link:hover {
-            color: #e0e0e0; /* light gray on hover */
-        }
-        .back-link i {
-            margin-right: 0.5rem;
-        }
-
-        /* Form Section Titles */
-        .form-section-title {
-            font-size: 1.125rem; /* text-lg */
-            font-weight: 600; /* font-semibold */
-            color: #f59e0b; /* orange-500 for headings */
-            border-bottom: 1px solid #4b5563; /* gray-600 */
-            padding-bottom: 0.75rem;
-            margin-bottom: 1.5rem;
-        }
-
-        /* Input Field Styling */
-        .input-icon-container {
-            position: relative;
-        }
-        .input-icon {
-            position: absolute;
-            left: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af; /* gray-400 */
-            font-size: 0.875rem; /* text-sm */
-        }
-
-        /* Adjust icon position for textarea */
-        textarea.input-icon-container + .input-icon {
-            top: 0.75rem;
-            transform: translateY(0);
-        }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="tel"],
-        input[type="date"],
-        input[type="time"],
-        textarea,
-        select {
-            background-color: #2a2a2a; /* Darker input background */
-            color: #e0e0e0; /* Light text */
-            border-color: #4b5563; /* gray-600 border */
-            border-radius: 0.375rem; /* rounded-md */
-            padding-left: 2.5rem; /* Space for icon */
-            font-size: 0.875rem; /* text-sm */
-        }
-
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1); /* Make calendar icon white/visible on dark background */
-        }
-
-        input[type="time"]::-webkit-calendar-picker-indicator {
-            filter: invert(1); /* Make clock icon white/visible on dark background */
-        }
-
-
-        input:focus,
-        textarea:focus,
-        select:focus {
-            border-color: #f59e0b; /* orange-500 on focus */
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5); /* orange-300 ring */
-        }
-
-        .mobile-group .input-icon-container {
-            position: relative;
-        }
-
-        /* Error Messages */
-        .error-message {
-            color: #f87171; /* red-400 */
-            font-size: 0.75rem; /* text-xs */
-            margin-top: 0.25rem;
-        }
-
-        /* Button Styling */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-            border: none; /* Remove default button border */
-        }
-
-        .btn-primary {
-            background-color: #f59e0b; /* orange-500 */
-            color: #1f2937; /* Dark text for contrast */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .btn-primary:hover {
-            background-color: #ea580c; /* orange-600 */
-            transform: translateY(-1px); /* Slight lift effect */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-        .btn-primary:disabled {
-            background-color: #9ca3af; /* gray-400 */
-            cursor: not-allowed;
-            transform: translateY(0);
-            box-shadow: none;
-        }
-
-        .btn-secondary {
-            background-color: #4b5563; /* gray-600 */
-            color: #e0e0e0;
-        }
-        .btn-secondary:hover {
-            background-color: #6b7280; /* gray-500 */
-            transform: translateY(-1px);
-        }
-
-        /* Summary Section */
-        #reservation-summary {
-            background-color: #2a2a2a; /* Darker background for summary */
-            border: 1px solid #4b5563; /* gray-600 border */
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            color: #e0e0e0;
-        }
-        #reservation-summary .form-section-title {
-            color: #e0e0e0; /* Light text for summary title */
-            border-bottom-color: #6b7280; /* Lighter border for summary title */
-        }
-
-
-        /* Confirmation Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Dark overlay */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000; /* Higher than other content */
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease-in-out;
-        }
-        .modal-overlay.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-        .confirmation-modal-content {
-            background-color: #1a1a1a; /* Dark background for modal */
-            border-radius: 0.5rem;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
-            width: 90%;
-            max-width: 450px;
-            overflow: hidden; /* Ensures rounded corners */
-            color: #e0e0e0; /* Light text */
-        }
-        .confirmation-modal-header {
-            background-color: #22c55e; /* Green header from image */
-            color: white;
-            padding: 1rem 1.5rem;
-            font-size: 1.25rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            border-top-left-radius: 0.5rem; /* Match parent */
-            border-top-right-radius: 0.5rem; /* Match parent */
-        }
-        .confirmation-modal-body {
-            padding: 1.5rem;
-            text-align: center;
-        }
-        .confirmation-modal-buttons {
-            display: flex;
-            justify-content: space-around; /* Or space-evenly */
-            padding: 1rem 1.5rem;
-            gap: 1rem;
-            border-top: 1px solid #4b5563; /* Separator line */
-        }
-        .confirmation-modal-buttons button {
-            flex: 1; /* Make buttons take equal width */
-            padding: 0.75rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-            border: none;
-        }
-        .confirmation-modal-buttons .btn-confirm {
-            background-color: #22c55e; /* Green */
-            color: white;
-        }
-        .confirmation-modal-buttons .btn-confirm:hover {
-            background-color: #16a34a; /* Darker green */
-            transform: translateY(-1px);
-        }
-        .confirmation-modal-buttons .btn-cancel {
-            background-color: #4b5563; /* Gray */
-            color: white;
-        }
-        .confirmation-modal-buttons .btn-cancel:hover {
-            background-color: #6b7280; /* Lighter gray */
-            transform: translateY(-1px);
-        }
-
-        /* Success Modal Styles (similar to confirmation but with success theme) */
-        .success-modal-content {
-            background-color: #1a1a1a; /* Dark background */
-            border-radius: 0.5rem;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
-            width: 90%;
-            max-width: 450px;
-            overflow: hidden;
-            color: #e0e0e0;
-            text-align: center;
-        }
-        .success-modal-header {
-            background-color: #22c55e; /* Green header */
-            color: white;
-            padding: 1rem 1.5rem;
-            font-size: 1.25rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center; /* Center header content */
-            gap: 0.75rem;
-            border-top-left-radius: 0.5rem;
-            border-top-right-radius: 0.5rem;
-        }
-        .success-modal-body {
-            padding: 1.5rem;
-        }
-        .success-modal-body p {
-            margin-bottom: 1rem;
-            font-size: 1rem;
-        }
-        .success-modal-buttons {
-            padding: 1rem 1.5rem;
-            border-top: 1px solid #4b5563;
-            text-align: center;
-        }
-        .success-modal-buttons .btn-ok {
-            background-color: #f59e0b; /* Orange "OK" button */
-            color: #1f2937;
-            padding: 0.75rem 2rem;
-            border-radius: 0.375rem;
-            font-weight: 600;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-            border: none;
-        }
-        .success-modal-buttons .btn-ok:hover {
-            background-color: #ea580c;
-            transform: translateY(-1px);
-        }
 
     </style>
 </head>
@@ -622,8 +276,6 @@ $voucher_value = get_value('voucher_code');
                 <?php endif; ?>
 
                 <?php // Display success message if reservation_manage.php redirects back with one
-                // This block will now be handled by the success modal in JavaScript
-                /*
                 if ($success_message): ?>
                     <div class="bg-green-900 bg-opacity-20 border-l-4 border-green-500 text-green-300 p-4 rounded-md relative mb-6 shadow-md text-xs" role="alert">
                         <strong class="font-bold block mb-1"><i class="fas fa-check-circle mr-2"></i>Success!</strong>
@@ -632,8 +284,7 @@ $voucher_value = get_value('voucher_code');
                         <p class="mt-2 text-xs">You can view the status of your request on your <a href="client_dashboard.php" class="font-medium underline hover:text-green-400">dashboard</a>.</p>
                         <?php endif; ?>
                     </div>
-                <?php else: // Show the form only if there's no success message and no fatal error preventing form display
-                */ ?>
+                <?php else: // Show the form only if there's no success message and no fatal error preventing form display ?>
 
                     <?php if ($venue_id > 0 && $venue_price_per_hour >= 0 && !$has_pending_reservation) : // Only show form sections if venue details are valid and no pending reservation ?>
 
@@ -809,7 +460,7 @@ $voucher_value = get_value('voucher_code');
                         </div>
 
                         <div class="mt-6 text-center">
-                            <button type="button" id="open-confirmation-modal-btn" class="btn btn-primary w-full md:w-auto" <?= ($venue_id <= 0 || $venue_price_per_hour < 0 || $has_pending_reservation) ? 'disabled' : '' ?>>
+                            <button type="submit" id="submit-button" class="btn btn-primary w-full md:w-auto" <?= ($venue_id <= 0 || $venue_price_per_hour < 0 || $has_pending_reservation) ? 'disabled' : '' ?>>
                                 <i class="fas fa-paper-plane mr-2"></i> Submit Reservation Request
                             </button>
                             <?php if ($venue_id <= 0 || $venue_price_per_hour < 0): ?>
@@ -831,7 +482,7 @@ $voucher_value = get_value('voucher_code');
                              </p>
                         </div>
                     <?php endif; // End check for valid venue details and pending reservation ?>
-                <?php // endif; // End of hiding form on success (now handled by JS modals) ?>
+                <?php endif; // End of hiding form on success ?>
 
             </div>
             <div class="image-column">
@@ -850,112 +501,92 @@ $voucher_value = get_value('voucher_code');
         </div>
     </div>
 
-    <!-- Confirmation Modal HTML -->
-    <div id="confirmationModal" class="modal-overlay">
-        <div class="confirmation-modal-content">
-            <div class="confirmation-modal-header">
-                <i class="fas fa-calendar-check text-2xl"></i>
-                <span>Make Room Reservations in Minutes</span>
-            </div>
-            <div class="confirmation-modal-body">
-                <p>Are you sure you want to confirm this booking?</p>
-                <div id="confirmationSummary" class="text-xs text-gray-400 mt-4">
-                    <!-- Dynamic summary will be inserted here by JS -->
-                </div>
-            </div>
-            <div class="confirmation-modal-buttons">
-                <button type="button" id="confirmBookingBtn" class="btn btn-confirm">Confirm Booking</button>
-                <button type="button" id="cancelBookingBtn" class="btn btn-cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Success Modal HTML -->
-    <div id="successModal" class="modal-overlay">
-        <div class="success-modal-content">
-            <div class="success-modal-header">
-                <i class="fas fa-check-circle text-2xl"></i>
-                <span>Reservation Confirmed!</span>
-            </div>
-            <div class="success-modal-body">
-                <p>Your reservation request has been successfully submitted and is now pending approval.</p>
-                <?php if ($user_id): ?>
-                    <p class="text-xs text-gray-400">You can view its status on your dashboard.</p>
-                <?php endif; ?>
-            </div>
-            <div class="success-modal-buttons">
-                <button type="button" id="successModalOkBtn" class="btn btn-ok">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Error Modal HTML -->
-    <div id="errorModal" class="modal-overlay">
-        <div class="success-modal-content"> <!-- Reusing some success modal styles for general modal structure -->
-            <div class="success-modal-header !bg-red-600"> <!-- Red header for error -->
-                <i class="fas fa-exclamation-triangle text-2xl"></i>
-                <span>Submission Error</span>
-            </div>
-            <div class="success-modal-body">
-                <p id="errorModalMessage" class="text-red-400"></p>
-            </div>
-            <div class="success-modal-buttons">
-                <button type="button" id="errorModalOkBtn" class="btn btn-ok !bg-red-500">OK</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const eventDateInput = document.getElementById('event-date');
-            const startTimeInput = document.getElementById('start-time');
-            const endTimeInput = document.getElementById('end-time');
-            const summarySection = document.getElementById('reservation-summary');
-            const openConfirmationModalBtn = document.getElementById('open-confirmation-modal-btn'); // New button
-            const submitButtonInForm = document.getElementById('submit-button'); // The hidden original form submit button
+        // The AJAX submission script remains the same
+        document.getElementById('reservationForm').addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent default form submission
 
-            // Modals
-            const confirmationModal = document.getElementById('confirmationModal');
-            const confirmBookingBtn = document.getElementById('confirmBookingBtn');
-            const cancelBookingBtn = document.getElementById('cancelBookingBtn');
-            const successModal = document.getElementById('successModal');
-            const successModalOkBtn = document.getElementById('successModalOkBtn');
-            const errorModal = document.getElementById('errorModal');
-            const errorModalOkBtn = document.getElementById('errorModalOkBtn');
-            const errorModalMessage = document.getElementById('errorModalMessage');
+             const form = e.target;
+             const formData = new FormData(form);
+
+            fetch('reservation_manage.php', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(data => {
+                 const trimmed = data.trim(); // Remove extra spaces or newlines
+
+                if (trimmed === 'success') {
+                    // Replaced alert with a custom message box or redirect for better UX
+                    // For now, redirecting immediately as per original code for success
+                    window.location.href = 'users/user_dashboard.php'; // Redirect to user dashboard on success
+                } else {
+                    // Display error message from server
+                    // You might want to update a specific div with ID 'responseMessage'
+                    // instead of an alert for a better user experience.
+                    const responseMessageEl = document.getElementById('responseMessage');
+                    if (responseMessageEl) {
+                        responseMessageEl.textContent = "Error: " + trimmed;
+                        responseMessageEl.classList.remove('text-green-400');
+                        responseMessageEl.classList.add('text-red-400');
+                    } else {
+                         alert("An error occurred: " + trimmed); // Fallback to alert if no specific div
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const responseMessageEl = document.getElementById('responseMessage');
+                if (responseMessageEl) {
+                    responseMessageEl.textContent = 'An error occurred while submitting the reservation.';
+                    responseMessageEl.classList.remove('text-green-400');
+                    responseMessageEl.classList.add('text-red-400');
+                } else {
+                    alert('An error occurred while submitting the reservation.'); // Fallback to alert
+                }
+            });
+        });
+
+
+        // The summary calculation script remains the same
+        document.addEventListener('DOMContentLoaded', function () {
+             const eventDateInput = document.getElementById('event-date');
+             const startTimeInput = document.getElementById('start-time');
+             const endTimeInput = document.getElementById('end-time');
+             const summarySection = document.getElementById('reservation-summary');
+             const submitButton = document.getElementById('submit-button');
+             const hasPendingReservation = <?= json_encode($has_pending_reservation); ?>; // PHP variable to JS
 
             // Summary elements
-            const summaryDateEl = document.getElementById('summary-event-date');
-            const summaryStartEl = document.getElementById('summary-start-time');
-            const summaryEndEl = document.getElementById('summary-end-time');
-            const summaryTotalCostEl = document.getElementById('summary-total-cost');
-            const summaryErrorEl = document.getElementById('summary-error');
-            const venuePriceEl = document.getElementById('summary-venue-price');
-            const venuePricePerHour = parseFloat(venuePriceEl?.dataset.price || 0); // Use actual price from PHP
-            const confirmationSummaryEl = document.getElementById('confirmationSummary');
+             const summaryDateEl = document.getElementById('summary-event-date');
+             const summaryStartEl = document.getElementById('summary-start-time');
+             const summaryEndEl = document.getElementById('summary-end-time');
+             const summaryTotalCostEl = document.getElementById('summary-total-cost');
+             const summaryErrorEl = document.getElementById('summary-error');
+             const venuePriceEl = document.getElementById('summary-venue-price');
+             const venuePricePerHour = parseFloat(venuePriceEl?.dataset.price || 0); // Use actual price from PHP
 
-            // Time validation error message element
-            const timeValidationErrorEl = document.getElementById('time-validation-error');
-
-            // PHP variable to JS
-            const hasPendingReservation = <?= json_encode($has_pending_reservation); ?>;
-            const userId = <?= json_encode($user_id); ?>;
-
+             // Time validation error message element
+              const timeValidationErrorEl = document.getElementById('time-validation-error');
 
             // Function to format time (e.g., 14:30 -> 2:30 PM)
-            function formatTime(timeString) {
+             function formatTime(timeString) {
                 if (!timeString) return '--';
-                const [hours, minutes] = timeString.split(':');
-                const date = new Date();
+                 const [hours, minutes] = timeString.split(':');
+                 const date = new Date();
                 date.setHours(hours, minutes, 0);
                 return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
             }
 
-            // Function to format date (e.g., 2024-12-31 -> Dec 31, 2024)
-            function formatDate(dateString) {
+             // Function to format date (e.g., 2024-12-31 -> Dec 31, 2024)
+             function formatDate(dateString) {
                 if (!dateString) return '--';
                 try {
-                    const date = new Date(dateString + 'T00:00:00'); // Avoid timezone issues by specifying time
+                     const date = new Date(dateString + 'T00:00:00'); // Avoid timezone issues by specifying time
                     return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
                 } catch (e) {
                     console.error("Error formatting date:", e);
@@ -963,274 +594,162 @@ $voucher_value = get_value('voucher_code');
                 }
             }
 
+
             // Function to calculate duration in hours
-            function calculateDuration(start, end) {
+             function calculateDuration(start, end) {
                 if (!start || !end) return 0;
                 try {
-                    const startDate = new Date(`1970-01-01T${start}:00`);
-                    const endDate = new Date(`1970-01-01T${end}:00`);
-
-                    if (isNaN(startDate) || isNaN(endDate)) {
-                        return 0; // Invalid time format
+                     const startDate = new Date(`1970-01-01T${start}:00`);
+                         const endDate = new Date(`1970-01-01T${end}:00`);
+                    if (isNaN(startDate) || isNaN(endDate) || endDate <= startDate) {
+                        return 0; // Invalid or end time not after start time
                     }
-
-                    // Handle end time being on the next day if it's earlier than start time (e.g., overnight booking)
-                    if (endDate <= startDate) {
-                        endDate.setDate(endDate.getDate() + 1);
-                    }
-
-                    const diffMillis = endDate - startDate;
+                     const diffMillis = endDate - startDate;
                     return diffMillis / (1000 * 60 * 60); // Convert milliseconds to hours
                 } catch (e) {
-                    console.error("Error calculating duration:", e);
+                     console.error("Error calculating duration:", e);
                     return 0;
                 }
             }
 
-            // Function to validate all form fields
-            function validateForm() {
-                let isValid = true;
-                const form = document.getElementById('reservationForm');
-                const inputs = form.querySelectorAll('input[required], textarea[required], select[required]');
-
-                // Clear previous errors
-                form.querySelectorAll('.error-message').forEach(el => el.textContent = '');
-                timeValidationErrorEl.textContent = '';
-                summaryErrorEl.textContent = '';
-
-                // Basic HTML5 validation
-                inputs.forEach(input => {
-                    if (!input.checkValidity()) {
-                        isValid = false;
-                        const errorId = input.id + '-error';
-                        let errorMessage = input.validationMessage || 'This field is required.';
-                        // Custom messages for specific input types if needed
-                        if (input.type === 'email' && input.value && !input.validity.valid) {
-                            errorMessage = 'Please enter a valid email address.';
-                        } else if (input.type === 'date' && input.validity.rangeUnderflow) {
-                            errorMessage = 'Date cannot be in the past.';
-                        }
-                        document.getElementById(errorId).textContent = errorMessage;
-                    }
-                });
-
-                // Custom time validation
-                const startTime = startTimeInput.value;
-                const endTime = endTimeInput.value;
-                if (startTime && endTime) {
-                    const duration = calculateDuration(startTime, endTime);
-                    if (duration <= 0) {
-                        timeValidationErrorEl.textContent = 'End time must be after start time.';
-                        isValid = false;
-                    } else if (duration < 1) { // Minimum 1 hour booking
-                         timeValidationErrorEl.textContent = 'Minimum booking duration is 1 hour.';
-                        isValid = false;
-                    }
-                } else if (!startTime || !endTime) {
-                    // This case is already covered by 'required' validation for start/end time fields.
-                    // If they are required and empty, isValid will already be false.
-                }
-
-                return isValid;
-            }
-
-
             // Function to update summary and total cost
-            function updateSummary() {
-                const eventDate = eventDateInput.value;
-                const startTime = startTimeInput.value;
-                const endTime = endTimeInput.value;
+             function updateSummary() {
+                  const eventDate = eventDateInput.value;
+                 const startTime = startTimeInput.value;
+                 const endTime = endTimeInput.value;
+                 let isTimeValid = true;
+                  let timeErrorMsg = '';
 
-                summaryDateEl.textContent = formatDate(eventDate);
-                summaryStartEl.textContent = formatTime(startTime);
-                summaryEndEl.textContent = formatTime(endTime);
-
-                let currentTotalCost = 0;
-                summaryErrorEl.textContent = ''; // Clear previous summary errors
-
-                const duration = calculateDuration(startTime, endTime);
-
-                if (duration > 0 && venuePricePerHour > 0) {
-                    currentTotalCost = duration * venuePricePerHour;
-                } else if (duration <= 0 && startTime && endTime) {
-                    summaryErrorEl.textContent = 'Invalid duration (end time must be after start time).';
-                } else if (!eventDate || !startTime || !endTime) {
-                    summaryErrorEl.textContent = 'Please select date and time to calculate cost.';
-                } else if (venuePricePerHour <= 0) {
-                     summaryErrorEl.textContent = 'Venue price is unavailable or invalid.';
+                // Basic validation: End time must be after start time
+                if (startTime && endTime) {
+                      const startDate = new Date(`1970-01-01T${startTime}:00`);
+                     const endDate = new Date(`1970-01-01T${endTime}:00`);
+                     if (endDate <= startDate) {
+                         isTimeValid = false;
+                         timeErrorMsg = 'End time must be after start time.';
+                         endTimeInput.classList.add('border-red-500');
+                     } else {
+                        endTimeInput.classList.remove('border-red-500');
+                    }
+                } else {
+                     // Clear potential border if one time is missing
+                    endTimeInput.classList.remove('border-red-500');
                 }
 
-                summaryTotalCostEl.textContent = `₱ ${currentTotalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                // Update time validation message
+                if (timeValidationErrorEl) {
+                    timeValidationErrorEl.textContent = timeErrorMsg;
+                 }
 
-                // Show/hide summary section
-                if (eventDate && startTime && endTime && duration > 0 && currentTotalCost > 0) {
+                // Show summary only if date, start, and end times are selected and valid
+                if (eventDate && startTime && endTime && isTimeValid && venuePricePerHour >= 0) {
                     summarySection.classList.remove('hidden');
+
+                     const durationHours = calculateDuration(startTime, endTime);
+                     const totalCost = durationHours * venuePricePerHour;
+
+                    summaryDateEl.textContent = formatDate(eventDate);
+                    summaryStartEl.textContent = formatTime(startTime);
+                    summaryEndEl.textContent = formatTime(endTime);
+                    summaryTotalCostEl.textContent = `₱ ${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    summaryErrorEl.textContent = ''; // Clear previous errors
+                    // Only enable submit button if no pending reservation
+                    submitButton.disabled = hasPendingReservation;
+
                 } else {
-                    summarySection.classList.add('hidden');
+                    // Hide summary or show placeholder text if inputs are incomplete/invalid
+                    summarySection.classList.add('hidden'); // Or update with placeholders like '--'
+                    summaryDateEl.textContent = '--';
+                    summaryStartEl.textContent = '--';
+                    summaryEndEl.textContent = '--';
+                    summaryTotalCostEl.textContent = '₱ 0.00';
+                    submitButton.disabled = true; // Disable submit button if times invalid or pending reservation
+
+                    if (!isTimeValid && timeErrorMsg) {
+                        summaryErrorEl.textContent = timeErrorMsg;
+                    } else if (venuePricePerHour < 0){
+                         summaryErrorEl.textContent = 'Invalid venue price.';
+                     } else if (hasPendingReservation) {
+                         summaryErrorEl.textContent = 'You have a pending reservation for this venue.';
+                     } else {
+                         summaryErrorEl.textContent = 'Please select date and valid start/end times.';
+                    }
                 }
             }
 
-
-            // Event listeners for input changes to update summary and enable/disable button
+            // Add event listeners to date and time inputs
             eventDateInput.addEventListener('change', updateSummary);
             startTimeInput.addEventListener('change', updateSummary);
             endTimeInput.addEventListener('change', updateSummary);
 
-            // Initial summary update
+            // Initial summary update on page load (in case of pre-filled values)
+            // Also check for pending reservation status on load
             updateSummary();
-
-            // Set up event listeners for inputs to run validation on blur
-            const formInputs = document.querySelectorAll('#reservationForm input, #reservationForm select, #reservationForm textarea');
-            formInputs.forEach(input => {
-                input.addEventListener('blur', function() {
-                    validateForm(); // Re-validate on blur
-                });
-                input.addEventListener('input', function() {
-                    // Clear error message on input to allow user to correct
-                    const errorId = input.id + '-error';
-                    const errorEl = document.getElementById(errorId);
-                    if (errorEl) errorEl.textContent = '';
-                });
-            });
-
-
-            // OPEN CONFIRMATION MODAL
-            openConfirmationModalBtn.addEventListener('click', function (e) {
-                e.preventDefault(); // Prevent default form submission
-
-                if (validateForm()) {
-                    // Populate confirmation modal summary
-                    confirmationSummaryEl.innerHTML = `
-                        <p><span class="font-semibold">Venue:</span> <?= htmlspecialchars($venue_title) ?></p>
-                        <p><span class="font-semibold">Date:</span> ${formatDate(eventDateInput.value)}</p>
-                        <p><span class="font-semibold">Time:</span> ${formatTime(startTimeInput.value)} - ${formatTime(endTimeInput.value)}</p>
-                        <p><span class="font-semibold">Estimated Total:</span> ${summaryTotalCostEl.textContent}</p>
-                    `;
-                    confirmationModal.classList.add('visible');
-                } else {
-                    // Form is invalid, show a generic error if not already displayed
-                    if (!document.querySelector('.error-message.block')) {
-                         showErrorModal('Please correct the errors in the form before proceeding.');
-                    }
-                }
-            });
-
-            // CLOSE CONFIRMATION MODAL
-            cancelBookingBtn.addEventListener('click', () => {
-                confirmationModal.classList.remove('visible');
-            });
-            confirmationModal.addEventListener('click', function(event) {
-                if (event.target === confirmationModal) {
-                    confirmationModal.classList.remove('visible');
-                }
-            });
-
-            // CONFIRM BOOKING (ACTUAL AJAX SUBMISSION)
-            confirmBookingBtn.addEventListener('click', function () {
-                confirmationModal.classList.remove('visible'); // Hide confirmation modal
-                const form = document.getElementById('reservationForm');
-                const formData = new FormData(form);
-
-                // Add price_per_hour and total_cost to formData
-                formData.append('price_per_hour', venuePricePerHour);
-                // Extract numeric value from summaryTotalCostEl.textContent (e.g., "₱ 123.45" -> 123.45)
-                const totalCost = parseFloat(summaryTotalCostEl.textContent.replace(/[₱, ]/g, ''));
-                formData.append('total_cost', totalCost);
-
-
-                fetch('reservation_manage.php', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest' // Identify as AJAX request
-                    }
-                })
-                .then(response => response.text())
-                .then(data => {
-                    const trimmedData = data.trim();
-
-                    if (trimmedData === 'success') {
-                        showSuccessModal();
-                    } else {
-                        showErrorModal(trimmedData || 'An unknown error occurred during reservation.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Fetch error:', error);
-                    showErrorModal('Network error or server unreachable. Please try again.');
-                });
-            });
-
-            // SUCCESS MODAL LOGIC
-            function showSuccessModal() {
-                successModal.classList.add('visible');
+            if (hasPendingReservation) {
+                submitButton.disabled = true;
+                // Add a message to the user that they have a pending reservation
+                const pendingMsgEl = document.createElement('p');
+                pendingMsgEl.className = 'text-xs text-red-400 mt-2';
+                pendingMsgEl.textContent = 'You already have a pending reservation for this venue. Please manage it from your dashboard.';
+                submitButton.parentNode.appendChild(pendingMsgEl);
             }
 
-            successModalOkBtn.addEventListener('click', () => {
-                successModal.classList.remove('visible');
-                // Optional: Redirect to dashboard or specific page after successful booking
-                <?php if ($user_id): ?>
-                    window.location.href = 'users/user_dashboard.php';
-                <?php else: ?>
-                    // If guest, perhaps redirect to a thank you page or homepage
-                    window.location.href = 'index.php';
-                <?php endif; ?>
-            });
+             // Optional: Add form submission validation here if needed before sending to PHP
+             /*
+             document.getElementById('reservation-form').addEventListener('submit', function(event) {
+                 // Example: Ensure times are still valid
+                 if (!calculateDuration(startTimeInput.value, endTimeInput.value) > 0) {
+                     alert('Please ensure the end time is after the start time.');
+                     event.preventDefault(); // Stop submission
+                     return false;
+                 }
+                 // Add other client-side checks if necessary
+             });
+             */
 
-            successModal.addEventListener('click', function(event) {
-                if (event.target === successModal) {
-                    successModal.classList.remove('visible');
-                    // Optional: Redirect even if clicked outside modal
-                     <?php if ($user_id): ?>
-                         window.location.href = 'users/user_dashboard.php';
-                     <?php else: ?>
-                         window.location.href = 'index.php';
-                     <?php endif; ?>
-                }
-            });
+             // --- Optional: AJAX Check for Unavailable Dates ---
+             // This requires a separate PHP endpoint (e.g., check_availability.php)
+             /*
+             eventDateInput.addEventListener('change', function() {
+                 const selectedDate = this.value;
+                 const venueId = document.querySelector('input[name="venue_id"]').value;
+                 const availabilityMsgEl = document.getElementById('date-availability-msg');
+                 availabilityMsgEl.textContent = ''; // Clear previous message
 
-            // ERROR MODAL LOGIC
-            function showErrorModal(message) {
-                errorModalMessage.textContent = message;
-                errorModal.classList.add('visible');
-            }
+                 if (!selectedDate || !venueId) return;
 
-            errorModalOkBtn.addEventListener('click', () => {
-                errorModal.classList.remove('visible');
-            });
+                 // Fetch request to your backend
+                 fetch(`check_availability.php?venue_id=${venueId}&date=${selectedDate}`)
+                         .then(response => {
+                              if (!response.ok) {
+                                   // If response is not OK, maybe the endpoint doesn't exist or has server error
+                                   console.error('Availability check failed:', response.status, response.statusText);
+                                   availabilityMsgEl.textContent = 'Could not check date availability.';
+                                   // Don't disable submit button automatically on fetch error unless desired
+                                   return Promise.reject('Availability check failed'); // Propagate error
+                              }
+                              return response.json();
+                         })
+                     .then(data => {
+                         if (!data.available) {
+                              availabilityMsgEl.textContent = data.message || 'This date is not available for booking.';
+                              submitButton.disabled = true; // Disable submit if date unavailable
+                         } else {
+                              // Date is available, re-enable submit if other fields are valid
+                              updateSummary(); // Re-run summary check which handles submit button state
+                         }
+                     })
+                     .catch(error => {
+                         console.error('Error checking date availability:', error);
+                         // availabilityMsgEl.textContent = 'Could not check date availability.'; // Keep the message from fetch error if any
+                         // submitButton.disabled = true; // Optionally disable submit button on *any* check error
+                     });
+             });
+             */
 
-            errorModal.addEventListener('click', function(event) {
-                if (event.target === errorModal) {
-                    errorModal.classList.remove('visible');
-                }
-            });
-
-             // Ensure the "Submit Reservation Request" button's disabled state is correctly set on load
-            // and whenever relevant inputs change
-            function updateSubmitButtonState() {
-                const isFormValid = validateForm(); // Check basic validity
-                const isPriceValid = venuePricePerHour > 0;
-                const noPending = !hasPendingReservation;
-
-                if (isFormValid && isPriceValid && noPending) {
-                    openConfirmationModalBtn.disabled = false;
-                } else {
-                    openConfirmationModalBtn.disabled = true;
-                }
-            }
-
-            // Call updateSubmitButtonState on page load and whenever relevant inputs change
-            eventDateInput.addEventListener('change', updateSubmitButtonState);
-            startTimeInput.addEventListener('change', updateSubmitButtonState);
-            endTimeInput.addEventListener('change', updateSubmitButtonState);
-            // Add other critical inputs that affect validity
-            document.getElementById('first-name').addEventListener('input', updateSubmitButtonState);
-            document.getElementById('last-name').addEventListener('input', updateSubmitButtonState);
-            document.getElementById('email').addEventListener('input', updateSubmitButtonState);
-
-            updateSubmitButtonState(); // Initial call on DOMContentLoaded
         });
     </script>
 
 </body>
 </html>
+
