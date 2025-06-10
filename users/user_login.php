@@ -5,8 +5,6 @@ session_start();
 define('DASHBOARD_PATH', '/ventech_locator/users/user_dashboard.php');
 define('SIGNUP_PATH', '/ventech_locator/users/user_signup.php');
 define('FORGOT_PASSWORD_PATH', '#'); // Replace with actual path when available
-define('VERIFY_EMAIL_PATH', '/ventech_locator/users/verify_email.php'); // New: Path to email verification script
-define('RESEND_VERIFICATION_PATH', '/ventech_locator/users/resend_verification.php'); // New: Path to resend verification script
 
 // ==================== Redirect if Logged In ====================
 // This check is for direct access to user_login.php when already logged in.
@@ -42,7 +40,6 @@ $options = [
 $error = "";
 $login_val = ""; // To retain email/username input value
 $success_message = ''; // For registration success message
-$show_resend_button = false; // Flag to show resend verification email button
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
@@ -114,37 +111,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && empty($error)) {
         } else {
             try {
                 // Prepare statement to find user by email or username
-                // IMPORTANT: Ensure 'email_verified_at' column exists in your 'users' table
-                $stmt = $pdo->prepare("SELECT id, username, email, password, role, email_verified_at FROM users WHERE email = ? OR username = ? LIMIT 1");
+                $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1");
                 $stmt->execute([$login_val, $login_val]); // Use raw input for query
                 $user = $stmt->fetch();
 
                 if ($user && password_verify($password, $user['password'])) {
-                    // Password is correct, now check email verification status
-                    if (empty($user['email_verified_at'])) {
-                        $error = "Your email address is not verified. Please check your email for a verification link. If you haven't received it, you can request a new one.";
-                        $show_resend_button = true; // Show the resend button
-                        // Store email/username temporarily in session to pre-fill resend form if needed
-                        $_SESSION['unverified_email_or_username'] = $login_val;
-                    } else {
-                        // Email is verified, set session and redirect
-                        $_SESSION['user_id'] = $user['id'];
-                        $_SESSION['username'] = $user['username'];
-                        $_SESSION['role'] = $user['role'];
+                    // Password is correct, set session and redirect
+                    $_SESSION['user_id'] = $user['id'];
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['role'] = $user['role'];
 
-                        // Regenerate session ID to prevent session fixation
-                        session_regenerate_id(true);
+                    // Regenerate session ID to prevent session fixation
+                    session_regenerate_id(true);
 
-                        // Redirect the parent window (if in iframe) or self
-                        echo '<script type="text/javascript">';
-                        echo 'if (window.self !== window.top) {'; // Check if inside an iframe
-                        echo '    window.top.location.href = "' . DASHBOARD_PATH . '";'; // Redirect parent
-                        echo '} else {';
-                        echo '    window.location.href = "' . DASHBOARD_PATH . '";'; // Redirect self
-                        echo '}';
-                        echo '</script>';
-                        exit;
-                    }
+                    // Redirect the parent window (if in iframe) or self
+                    echo '<script type="text/javascript">';
+                    echo 'if (window.self !== window.top) {'; // Check if inside an iframe
+                    echo '    window.top.location.href = "' . DASHBOARD_PATH . '";'; // Redirect parent
+                    echo '} else {';
+                    echo '    window.location.href = "' . DASHBOARD_PATH . '";'; // Redirect self
+                    echo '}';
+                    echo '</script>';
+                    exit;
                 } else {
                     $error = "Invalid login credentials.";
                 }
@@ -159,28 +147,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && empty($error)) {
 // ==================== Handle Registration Redirect Message ====================
 if (isset($_GET['registered']) && $_GET['registered'] == 1) {
     $success_message = "Registration successful! Please log in.";
-    // If registration just happened, and we expect email verification,
-    // you might want to explicitly set a message about checking email here.
-    // For now, it's covered by the login check, but a direct message can be helpful.
-    if (isset($_GET['verification_required']) && $_GET['verification_required'] == 1) {
-        $success_message .= " A verification email has been sent to your inbox. Please click the link in the email to activate your account.";
-        // Pre-fill the login form with the username/email used for registration if available in GET
-        if (isset($_GET['email_or_username'])) {
-             $login_val = htmlspecialchars($_GET['email_or_username']);
-        }
-    }
-}
-
-// Handle message from email verification success
-if (isset($_GET['email_verified']) && $_GET['email_verified'] == 1) {
-    $success_message = "Your email has been successfully verified! You can now log in.";
-} elseif (isset($_GET['email_verified']) && $_GET['email_verified'] == 0) {
-    $error = "Email verification failed or link expired. Please try logging in or resend verification.";
-}
-
-// Handle message from resend verification request
-if (isset($_GET['resend_success']) && $_GET['resend_success'] == 1) {
-    $success_message = "A new verification email has been sent. Please check your inbox (and spam folder!).";
 }
 ?>
 
@@ -197,29 +163,7 @@ if (isset($_GET['resend_success']) && $_GET['resend_success'] == 1) {
      <link rel="stylesheet" href="/ventech_locator/css/user/user_login.css">
 
     <style>
-      /* Add any additional CSS specific to this page here if needed */
-      /* For the resend verification button */
-      .resend-button {
-          background-color: #3b82f6; /* Tailwind blue-500 */
-          color: white;
-          font-weight: 600;
-          font-size: 0.75rem; /* text-xs */
-          padding: 0.5rem 1.5rem; /* px-6 py-2 */
-          border-radius: 0.125rem; /* rounded-sm */
-          margin-top: 0.75rem; /* mt-3 */
-          transition: background-color 0.15s ease-in-out;
-          width: 100%; /* Full width on small screens */
-          box-sizing: border-box; /* Include padding in width */
-          border: none; /* No default border */
-          cursor: pointer;
-      }
-      .resend-button:hover {
-          background-color: #2563eb; /* Tailwind blue-600 */
-      }
-      .resend-button:disabled {
-          background-color: #9ca3af; /* Tailwind gray-400 */
-          cursor: not-allowed;
-      }
+      
     </style>
 </head>
 <body>
@@ -274,7 +218,6 @@ if (isset($_GET['resend_success']) && $_GET['resend_success'] == 1) {
         <form id="loginForm" method="POST" action="" class="space-y-3" aria-label="User Login form" novalidate="">
           <input
             type="text"
-            id="email_or_username"
             name="email_or_username"
             placeholder="Email or Username"
             class="w-full bg-gray-300 text-black text-sm rounded-sm px-3 py-2 focus:outline-none"
@@ -295,15 +238,6 @@ if (isset($_GET['resend_success']) && $_GET['resend_success'] == 1) {
             LOGIN
           </button>
         </form>
-
-        <?php if ($show_resend_button): ?>
-            <form id="resendVerificationForm" method="POST" action="<?= RESEND_VERIFICATION_PATH ?>" class="mt-2">
-                <input type="hidden" name="email_or_username" value="<?= htmlspecialchars($login_val) ?>">
-                <button type="submit" class="resend-button">
-                    Resend Verification Email
-                </button>
-            </form>
-        <?php endif; ?>
 
         <form id="guestLoginForm" method="POST" action="" class="mt-4">
             <button type="submit" name="login_as_guest" class="w-full bg-[#00303f] text-white font-semibold text-xs rounded-sm px-6 py-2 hover:bg-[#1a4a5f] transition">
