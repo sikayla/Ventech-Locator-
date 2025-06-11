@@ -209,62 +209,337 @@ $voucher_value = get_value('voucher_code');
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/ventech_locator/css/venue_reservation_form.css">
     <style>
-       /* Custom styles for icon positioning and input padding to prevent overlap */
-        .input-icon-container {
-            position: relative;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0; /* Remove default body margin */
+            padding: 0; /* Remove default body padding */
+            /* Background handled by the main div */
+        }
+        /* Custom focus ring color - Adjusted for dark background */
+        input:focus, select:focus, textarea:focus {
+            --tw-ring-color: #a88c5a; /* Match the button color from index.html */
+            --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+            --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+             box-shadow : var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+             border-color : #a88c5a; /* Match the button color from index.html */
+        }
+        /* Style for icons inside inputs - Adjusted for dark background */
+        .input-icon-container {  position : relative; }
+        /* Adjusted icon size */
+        .input-icon {  position : absolute;  left : 0.5rem;  top : 50%;  transform : translateY(-50%);  color : #9ca3af; /* gray-400 */  pointer-events : none; font-size: 0.75rem; /* text-xs */ }
+        /* Adjust padding for icon - Reduced padding */
+        input[type="text"].pl-10,
+        input[type="email"].pl-10,
+        input[type="tel"].pl-10,
+        input[type="date"].pl-10,
+        input[type="time"].pl-10,
+        select.pl-10,
+        textarea.pl-10 {  padding-left : 2rem; /* Reduced from 2.5rem */ }
+        /* Ensure space for default browser icons if needed */
+        input[type="date"], input[type="time"] {  padding-right : 0.5rem; }
+        /* Adjust textarea icon position - Adjusted for smaller padding */
+        textarea.pl-10 + .input-icon {  top : 0.5rem;  transform : translateY(0); }
+
+        /* Section styling - Adjusted for dark background */
+        .form-section {
+             background-color : #2a2a2a; /* Darker background */
+             padding : 1rem; /* p-4, Reduced from 1.5rem */
+             border-radius : 0.5rem; /* rounded-lg */
+             box-shadow : 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1); /* shadow-md */
+             margin-bottom : 1rem; /* mb-4, Reduced from 1.5rem */
+             border : 1px solid #3a3a3a; /* Darker border */
+             color: #d1d5db; /* Light gray text */
+        }
+        /* Adjusted section title size */
+        .form-section-title {
+             font-size : 1rem; /* text-base, Reduced from 1.125rem */
+             font-weight : 600; /* font-semibold */
+             color : #f3f4f6; /* Lighter gray text */
+             margin-bottom : 0.75rem; /* mb-3, Reduced from 1rem */
+             padding-bottom : 0.5rem; /* pb-2 */
+             border-bottom : 1px solid #3a3a3a; /* Darker border */
+        }
+         /* Adjusted label font size */
+         .form-section label {
+             color: #9ca3af; /* Gray 400 for labels */
+             font-size: 0.75rem; /* text-xs */
+         }
+         /* Adjusted input font size and padding */
+         .form-section input[type="text"],
+         .form-section input[type="email"],
+         .form-section input[type="tel"],
+         .form-section input[type="date"],
+         .form-section input[type="time"],
+         .form-section select,
+         .form-section textarea {
+             background-color: #1a1a1a; /* Even darker input background */
+             border-color: #3a3a3a; /* Darker border */
+             color: #d1d5db; /* Light gray text */
+             font-size: 0.75rem; /* text-xs */
+             padding: 0.5rem 0.75rem; /* py-2 px-3 */
+         }
+          .form-section input::placeholder,
+          .form-section textarea::placeholder {
+              color: #6b7280; /* Gray 500 for placeholders */
+              font-size: 0.75rem; /* text-xs */
+          }
+
+        /* Enhance mobile number group */
+        .mobile-group select {  border-top-right-radius : 0;  border-bottom-right-radius : 0;  border-right-width : 0; }
+        .mobile-group input {  border-top-left-radius : 0;  border-bottom-left-radius : 0; }
+         /* Adjusted style for the country code span */
+         .mobile-group span {
+             background-color: #1a1a1a; /* Match input background */
+             border-color: #3a3a3a; /* Match input border */
+             color: #d1d5db; /* Match input text */
+             padding: 0.5rem 0.75rem; /* py-2 px-3, Match input padding */
+             font-size: 0.75rem; /* text-xs */
+             display: flex; /* Ensure flex properties apply */
+             align-items: center; /* Center vertically */
+             gap: 0.25rem; /* Reduced gap */
+         }
+         .mobile-group select { /* Style for the select inside the span */
+              background-color: transparent;
+              border: none;
+              padding: 0;
+              margin: 0;
+              color: inherit;
+              font-size: inherit;
+              -webkit-appearance: none; /* Remove default arrow */
+              -moz-appearance: none;
+              appearance: none;
+              cursor: pointer;
+         }
+         .mobile-group select:focus {
+             outline: none;
+             box-shadow: none;
+         }
+
+
+        /* Button styles - Using style from index.html */
+        .btn {
+             display : inline-flex;
+             align-items : center;
+             justify-content : center;
+             padding : 0.5rem 1rem; /* py-2 px-4, Reduced padding */
+             border-radius : 0.25rem; /* rounded */
+             font-weight : 600; /* font-semibold */
+             text-align : center;
+             transition : background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.1s ease;
+             cursor : pointer;
+             box-shadow : 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+             border : 1px solid transparent;
+             font-size: 0.75rem; /* text-xs, Increased slightly from 10px */
+        }
+        .btn:active {
+              transform : translateY(1px); /* Slight press effect */
+        }
+        .btn-primary {
+             background-color : #a88c5a; /* Color from index.html button */
+             color : #1a1a1a; /* Dark text for contrast */
+             border-color : #a88c5a;
+        }
+        .btn-primary:hover {
+             background-color : #8b734a; /* Darker hover color */
+             border-color : #8b734a;
+             box-shadow : 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05); /* shadow-md */
+        }
+         .btn-primary:disabled {
+              background-color : #d4c19f; /* Lighter disabled color */
+              border-color : #d4c19f;
+              color : #6b7280; /* Gray text */
+              cursor : not-allowed;
+              box-shadow : none;
+              transform : none;
+         }
+
+
+        .back-link {
+             display : inline-flex;
+             align-items : center;
+             color : #9ca3af; /* gray-400 */
+             font-weight : 500;
+             text-decoration : none;
+             transition : color 0.2s;
+             font-size: 0.75rem; /* text-xs */
+             margin-bottom: 1rem; /* mb-4, Reduced from 1.5rem */
+        }
+        .back-link:hover {  color : #f3f4f6; /* gray-100 */  text-decoration : none; } /* No underline on hover in index.html */
+        .back-link i {  margin-right : 0.25rem; /* mr-1, Reduced from 0.375rem */ }
+
+        /* Error message styling - Adjusted for dark background and smaller font */
+        .error-message {
+             color : #f87171; /* red-400 */
+             font-size : 0.625rem; /* text-xs */
+             margin-top : 0.125rem; /* mt-0.5 */
+        }
+        /* Input border error state */
+        input.border-red-500, select.border-red-500, textarea.border-red-500 {
+              border-color : #f87171 !important; /* red-400 */
+        }
+        input.border-red-500:focus, select.border-red-500:focus, textarea.border-red-500:focus {
+             --tw-ring-color: #f87171 !important; /* red-400 */
+              border-color : #f87171 !important; /* red-400 */
         }
 
-        .input-icon {
-            position: absolute;
-            left: 12px; /* Adjust as needed */
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none; /* Make sure it doesn't interfere with input clicks */
-            z-index: 10; /* Ensure icon is above input */
-            color: #9ca3af; /* Tailwind's gray-400 equivalent */
+        /* Summary section styles - Adjusted for dark background and smaller font */
+        #reservation-summary {
+              border-left : 4px solid #a88c5a; /* Match button color */
+              background-color : #2a2a2a; /* Darker background */
+              color: #d1d5db; /* Light gray text */
+              padding: 1rem; /* p-4 */
+              margin-bottom: 1rem; /* mb-4 */
         }
+        #reservation-summary .form-section-title {
+             border-bottom-color: #3a3a3a; /* Darker border */
+             font-size: 0.875rem; /* text-sm */
+             margin-bottom: 0.5rem; /* mb-2 */
+        }
+        #reservation-summary .text-gray-700 { /* For labels like 'Date:' */
+             color: #9ca3af; /* gray-400 */
+             font-size: 0.75rem; /* text-xs */
+        }
+        #reservation-summary .text-gray-900 { /* For values like '--' */
+             color: #f3f4f6; /* gray-100 */
+             font-size: 0.75rem; /* text-xs */
+        }
+         #reservation-summary .text-sm { /* For "Estimated Cost" */
+             font-size: 0.75rem; /* text-xs */
+         }
+         #reservation-summary .text-base { /* For "Estimated Total" */
+             font-size: 0.875rem; /* text-sm */
+         }
+        #summary-total-cost {
+              color : #a88c5a; /* Match button color */
+        }
+         /* Hide initially, shown by JS */
+         #reservation-summary.hidden {  display : none; }
 
-        .input-icon-container input,
-        .input-icon-container select {
-            padding-left: 40px !important; /* Increase padding to make space for the icon */
-        }
+         /* Adjust styling for the main container */
+         .main-container {
+             min-height: 100vh; /* Full viewport height */
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             background-image: linear-gradient(to bottom, #c3d1e9, #e6d3d9, #8db7e3);
+             padding: 1rem; /* p-4 */
+         }
+         .content-container {
+             max-width: 80rem; /* Adjusted max width for 2 columns */
+             width: 100%;
+             display: flex; /* Use flex for 2 columns */
+             background-color: #1a1a1a;
+             border-radius: 0.375rem; /* rounded-md */
+             overflow: hidden;
+             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+         }
+         .form-and-summary-column { /* New column for form and summary */
+             width: 50%; /* w-1/2 */
+             padding: 1.5rem; /* p-6 */
+             color: white;
+             overflow-y: auto; /* Add scroll if content is too long */
+             max-height: calc(100vh - 2rem); /* Adjust max height based on padding */
+         }
+         .image-column {
+             width: 50%; /* w-1/2 */
+             position: relative;
+         }
 
-        /* Specific adjustment for textarea icon if it's top-aligned */
-        .input-icon-container textarea {
-            padding-left: 40px !important; /* Ensure textarea also has padding */
-            padding-top: 10px !important; /* Adjust padding-top for textarea if icon is top-aligned */
-        }
-        .input-icon-container .fa-sticky-note { /* Specific icon for notes/textarea */
-            top: 12px; /* Align icon to top for textarea */
-            transform: translateY(0);
-        }
 
-        /* Adjust mobile group spacing if needed */
-        .mobile-group .input-icon-container {
-            /* This is a nested input-icon-container, ensure its input also has padding */
-            padding-left: 0; /* Override direct padding for this specific container as the country code takes up space */
-        }
-        .mobile-group input[type="tel"] {
-             /* Adjust padding for the tel input specifically within the mobile group */
-            padding-left: 12px !important; /* Or adjust as needed for visual balance next to country code */
-        }
+          .image-column img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+          }
+          .image-overlay-text {
+              position: absolute;
+              bottom: 1rem; /* bottom-4 */
+              left: 1rem; /* left-4 */
+              color: white;
+              font-size: 0.5rem; /* text-[8px] */
+              font-weight: 400; /* font-normal */
+              line-height: 1.25; /* leading-tight */
+              max-width: 12rem; /* Reduced max width */
+          }
+           .image-overlay-text .font-semibold {
+               font-weight: 600;
+           }
+           .image-overlay-text .text-red-400 { /* Adjusted color */
+               color: #f87171; /* red-400 */
+           }
+
+           /* Responsive adjustments */
+            @media (max-width: 768px) { /* md breakpoint */
+                .content-container {
+                    flex-direction: column; /* Stack columns on mobile */
+                }
+                .form-and-summary-column, .image-column {
+                    width: 100%; /* Full width */
+                     max-height: none; /* Remove max height when stacking */
+                     overflow-y: visible; /* Remove scroll when stacking */
+                }
+                .image-column {
+                     height: 150px; /* Further reduced image height on mobile */
+                }
+                 .image-overlay-text {
+                     bottom: 0.75rem; /* Reduced */
+                     left: 0.75rem; /* Reduced */
+                     font-size: 0.5rem; /* text-[8px] */
+                     max-width: 90%;
+                 }
+                 .back-link {
+                     margin-bottom: 0.75rem; /* Reduced margin */
+                 }
+                 .form-and-summary-column h1 { /* Adjusted main title size on mobile */
+                     font-size: 1.5rem; /* text-2xl */
+                 }
+                 .form-and-summary-column p.text-xs { /* Adjusted description text size on mobile */
+                      font-size: 0.625rem; /* text-[10px] */
+                 }
+                 .form-section-title { /* Adjusted section title size on mobile */
+                     font-size: 0.875rem; /* text-sm */
+                 }
+                 .form-section label,
+                 .form-section input,
+                 .form-section select,
+                 .form-section textarea,
+                 .form-section input::placeholder,
+                 .form-section textarea::placeholder,
+                 .mobile-group span { /* Adjusted input/label/placeholder size on mobile */
+                     font-size: 0.625rem; /* text-[10px] */
+                 }
+                 .input-icon { /* Adjusted icon size on mobile */
+                      font-size: 0.625rem; /* text-[10px] */
+                 }
+                 input[type="text"].pl-10,
+                 input[type="email"].pl-10,
+                 input[type="tel"].pl-10,
+                 input[type="date"].pl-10,
+                 input[type="time"].pl-10,
+                 select.pl-10,
+                 textarea.pl-10 { /* Adjusted padding for icon on mobile */
+                     padding-left: 1.5rem; /* Reduced */
+                 }
+                 textarea.pl-10 + .input-icon { /* Adjusted textarea icon position on mobile */
+                     top: 0.4rem; /* Adjusted */
+                 }
+                 .btn { /* Adjusted button font size on mobile */
+                     font-size: 0.625rem; /* text-[10px] */
+                 }
+                 #reservation-summary .text-sm { /* Adjusted summary text size on mobile */
+                     font-size: 0.625rem; /* text-[10px] */
+                 }
+                  #reservation-summary .text-base { /* Adjusted summary total size on mobile */
+                     font-size: 0.75rem; /* text-xs */
+                  }
+                  .error-message { /* Adjusted error message size on mobile */
+                      font-size: 0.5rem; /* text-[8px] */
+                  }
+            }
 
 
-        /* Styles for the confirmation modal */
-        #confirmation-modal {
-            transition: opacity 0.3s ease-in-out;
-            opacity: 0;
-        }
-        #confirmation-modal.hidden {
-            opacity: 0;
-            pointer-events: none; /* Disable interaction when hidden */
-        }
-        #confirmation-modal:not(.hidden) {
-            opacity: 1;
-            pointer-events: auto;
-        }
     </style>
 </head>
 <body>
@@ -357,10 +632,10 @@ $voucher_value = get_value('voucher_code');
                                 <div class="md:col-span-2">
                                     <label for="event-date" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Event Date*</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-calendar-day input-icon"></i>
+                                        <i class="fas fa-calendar-day input-icon text-gray-500 text-xs"></i>
                                         <input type="date" id="event-date" name="event_date"
                                                min="<?= $today ?>"
-                                               class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['event_date']) ? 'border-red-500' : '' ?>"
+                                               class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['event_date']) ? 'border-red-500' : '' ?>"
                                                value="<?= $event_date_value_for_input ?>" required aria-describedby="event-date-error">
                                     </div>
                                     <?php if (isset($errors['event_date'])): ?><p id="event-date-error" class="error-message"><?= htmlspecialchars($errors['event_date']); ?></p><?php endif; ?>
@@ -369,8 +644,8 @@ $voucher_value = get_value('voucher_code');
                                 <div>
                                     <label for="start-time" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Start time*</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-clock input-icon"></i>
-                                        <input type="time" id="start-time" name="start_time" step="1800" class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['start_time']) ? 'border-red-500' : '' ?>"
+                                        <i class="fas fa-clock input-icon text-gray-500 text-xs"></i>
+                                        <input type="time" id="start-time" name="start_time" step="1800" class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['start_time']) ? 'border-red-500' : '' ?>"
                                                value="<?= $start_time_value ?>" required aria-describedby="start-time-error">
                                     </div>
                                     <?php if (isset($errors['start_time'])): ?><p id="start-time-error" class="error-message"><?= htmlspecialchars($errors['start_time']); ?></p><?php endif; ?>
@@ -378,8 +653,8 @@ $voucher_value = get_value('voucher_code');
                                 <div>
                                     <label for="end-time" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">End time*</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-hourglass-end input-icon"></i>
-                                        <input type="time" id="end-time" name="end_time" step="1800" class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['end_time']) ? 'border-red-500' : '' ?>"
+                                        <i class="fas fa-hourglass-end input-icon text-gray-500 text-xs"></i>
+                                        <input type="time" id="end-time" name="end_time" step="1800" class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['end_time']) ? 'border-red-500' : '' ?>"
                                                value="<?= $end_time_value ?>" required aria-describedby="end-time-error time-validation-error">
                                     </div>
                                      <?php if (isset($errors['end_time'])): ?><p id="end-time-error" class="error-message"><?= htmlspecialchars($errors['end_time']); ?></p><?php endif; ?>
@@ -393,9 +668,9 @@ $voucher_value = get_value('voucher_code');
                                 <div>
                                     <label for="first-name" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">First name*</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-user input-icon"></i>
+                                        <i class="fas fa-user input-icon text-gray-500 text-xs"></i>
                                         <input type="text" id="first-name" name="first_name" autocomplete="given-name"
-                                               class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['first_name']) ? 'border-red-500' : '' ?>"
+                                               class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['first_name']) ? 'border-red-500' : '' ?>"
                                                value="<?= $first_name_value ?>" required aria-describedby="first-name-error">
                                     </div>
                                     <?php if (isset($errors['first_name'])): ?><p id="first-name-error" class="error-message"><?= htmlspecialchars($errors['first_name']); ?></p><?php endif; ?>
@@ -403,9 +678,9 @@ $voucher_value = get_value('voucher_code');
                                 <div>
                                     <label for="last-name" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Last name*</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-user input-icon"></i>
+                                        <i class="fas fa-user input-icon text-gray-500 text-xs"></i>
                                         <input type="text" id="last-name" name="last_name" autocomplete="family-name"
-                                               class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['last_name']) ? 'border-red-500' : '' ?>"
+                                               class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['last_name']) ? 'border-red-500' : '' ?>"
                                                value="<?= $last_name_value ?>" required aria-describedby="last-name-error">
                                     </div>
                                     <?php if (isset($errors['last_name'])): ?><p id="last-name-error" class="error-message"><?= htmlspecialchars($errors['last_name']); ?></p><?php endif; ?>
@@ -413,9 +688,9 @@ $voucher_value = get_value('voucher_code');
                                 <div class="md:col-span-2">
                                     <label for="email" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Email address*</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-envelope input-icon"></i>
+                                        <i class="fas fa-envelope input-icon text-gray-500 text-xs"></i>
                                         <input type="email" id="email" name="email" autocomplete="email"
-                                               class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['email']) ? 'border-red-500' : '' ?>"
+                                               class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['email']) ? 'border-red-500' : '' ?>"
                                                value="<?= $email_value ?>" required aria-describedby="email-error">
                                     </div>
                                      <?php if (isset($errors['email'])): ?><p id="email-error" class="error-message"><?= htmlspecialchars($errors['email']); ?></p><?php endif; ?>
@@ -444,9 +719,9 @@ $voucher_value = get_value('voucher_code');
                                 <div class="md:col-span-2">
                                     <label for="address" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Address</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-map-marker-alt input-icon"></i>
+                                        <i class="fas fa-map-marker-alt input-icon text-gray-500 text-xs"></i>
                                         <input type="text" id="address" name="address" autocomplete="street-address"
-                                               class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['address']) ? 'border-red-500' : '' ?>"
+                                               class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['address']) ? 'border-red-500' : '' ?>"
                                                value="<?= $address_value ?>" aria-describedby="address-error">
                                     </div>
                                      <?php if (isset($errors['address'])): ?><p id="address-error" class="error-message"><?= htmlspecialchars($errors['address']); ?></p><?php endif; ?>
@@ -454,8 +729,8 @@ $voucher_value = get_value('voucher_code');
                                 <div class="md:col-span-2">
                                     <label for="country" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Country</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-globe-asia input-icon"></i>
-                                        <select id="country" name="country" autocomplete="country-name" class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['country']) ? 'border-red-500' : '' ?>" aria-describedby="country-error">
+                                        <i class="fas fa-globe-asia input-icon text-gray-500 text-xs"></i>
+                                        <select id="country" name="country" autocomplete="country-name" class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['country']) ? 'border-red-500' : '' ?>" aria-describedby="country-error">
                                             <option value="Philippines" <?= ($country_value == 'Philippines') ? 'selected' : ''; ?>>Philippines</option>
                                             <option value="USA" <?= ($country_value == 'USA') ? 'selected' : ''; ?>>USA</option>
                                             <option value="Singapore" <?= ($country_value == 'Singapore') ? 'selected' : ''; ?>>Singapore</option>
@@ -474,8 +749,8 @@ $voucher_value = get_value('voucher_code');
                                 <div>
                                     <label for="notes" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Notes / Special Requests</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-sticky-note input-icon" style="top: 0.75rem; transform: translateY(0);"></i> <textarea id="notes" name="notes" rows="4"
-                                                  class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['notes']) ? 'border-red-500' : '' ?>"
+                                        <i class="fas fa-sticky-note input-icon text-gray-500 text-xs" style="top: 0.75rem; transform: translateY(0);"></i> <textarea id="notes" name="notes" rows="4"
+                                                  class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['notes']) ? 'border-red-500' : '' ?>"
                                                   placeholder="Any special requirements? (e.g., setup time needed, specific equipment, dietary restrictions if applicable)" aria-describedby="notes-error"><?= $notes_value ?></textarea>
                                     </div>
                                      <?php if (isset($errors['notes'])): ?><p id="notes-error" class="error-message"><?= htmlspecialchars($errors['notes']); ?></p><?php endif; ?>
@@ -483,9 +758,9 @@ $voucher_value = get_value('voucher_code');
                                 <div>
                                     <label for="voucher" class="block text-sm font-medium text-gray-400 mb-1 uppercase tracking-wide">Voucher Code (Optional)</label>
                                     <div class="input-icon-container">
-                                        <i class="fas fa-tag input-icon"></i>
+                                        <i class="fas fa-tag input-icon text-gray-500 text-xs"></i>
                                         <input type="text" id="voucher" name="voucher_code"
-                                               class="block w-full rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['voucher_code']) ? 'border-red-500' : '' ?>"
+                                               class="block w-full pl-10 rounded bg-[#1a1a1a] text-gray-400 text-xs border-gray-700 shadow-sm focus:border-orange-500 focus:ring focus:ring-orange-300 focus:ring-opacity-50 <?= isset($errors['voucher_code']) ? 'border-red-500' : '' ?>"
                                                value="<?= $voucher_value ?>" placeholder="Enter promo code if you have one" aria-describedby="voucher-error">
                                     </div>
                                     <?php if (isset($errors['voucher_code'])): ?><p id="voucher-error" class="error-message"><?= htmlspecialchars($errors['voucher_code']); ?></p><?php endif; ?>
@@ -517,7 +792,7 @@ $voucher_value = get_value('voucher_code');
 
             </div>
             <div class="image-column">
-                 <img alt="Decorative image for the reservation form" class="w-full h-full object-cover" src="/ventech_locator/images/side-photo.jpg"/> <div class="image-overlay-text">
+                 <img alt="Decorative image for the reservation form" class="w-full h-full object-cover" src="https://storage.googleapis.com/a1aa/image/99f9ecb6-47ee-4131-2c6b-9a3e5b77b43a.jpg"/> <div class="image-overlay-text">
                       <span class="font-semibold">
                        Bookings.
                       </span>
@@ -532,241 +807,74 @@ $voucher_value = get_value('voucher_code');
         </div>
     </div>
 
-    <!-- Confirmation Modal Structure -->
-    <div id="confirmation-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-        <div class="bg-[#2a2a2a] rounded-lg shadow-xl w-full max-w-md overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-lg">
-            <div class="bg-green-600 px-4 py-4 sm:px-6 flex items-center justify-between">
-                <h3 class="text-lg leading-6 font-semibold text-white flex items-center">
-                    <i class="fas fa-calendar-check mr-3 text-2xl"></i> Make Room Reservations in Minutes
-                </h3>
-            </div>
-            <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4 text-gray-300 text-sm">
-                <div class="mb-4 pb-4 border-b border-gray-700 border-dashed">
-                    <p class="font-semibold text-base mb-2">Confirm your booking details:</p>
-                    <div class="grid grid-cols-1 gap-2">
-                        <div><span class="font-semibold text-gray-400">Venue:</span> <span id="confirm-venue-name"></span></div>
-                        <div><span class="font-semibold text-gray-400">Date:</span> <span id="confirm-event-date"></span></div>
-                        <div><span class="font-semibold text-gray-400">Time:</span> <span id="confirm-start-end-time"></span></div>
-                        <div><span class="font-semibold text-gray-400">Estimated Total:</span> <span id="confirm-total-cost" class="font-bold text-orange-400"></span></div>
-                    </div>
-                </div>
-                <p>Once confirmed, your reservation request will be sent for approval.</p>
-            </div>
-            <div class="bg-[#1a1a1a] px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse sm:gap-2">
-                <button type="button" id="modal-confirm-button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm transition ease-in-out duration-150">
-                    Confirm Booking
-                </button>
-                <button type="button" id="modal-cancel-button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-gray-600 text-base font-medium text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm transition ease-in-out duration-150">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Global references for the modal elements
-        const confirmationModal = document.getElementById('confirmation-modal');
-        const modalConfirmButton = document.getElementById('modal-confirm-button');
-        const modalCancelButton = document.getElementById('modal-cancel-button');
-        const reservationForm = document.getElementById('reservationForm');
-        const responseMessageEl = document.getElementById('responseMessage'); // Element to display general messages
-
-        // Function to show the confirmation modal and populate it
-        function showConfirmationModal() {
-            // Populate modal with current summary details
-            document.getElementById('confirm-venue-name').textContent = document.getElementById('summary-venue-name').textContent;
-            document.getElementById('confirm-event-date').textContent = document.getElementById('summary-event-date').textContent;
-            document.getElementById('confirm-start-end-time').textContent = document.getElementById('summary-start-time').textContent + ' - ' + document.getElementById('summary-end-time').textContent;
-            document.getElementById('confirm-total-cost').textContent = document.getElementById('summary-total-cost').textContent;
-
-            confirmationModal.classList.remove('hidden');
-        }
-
-        // Function to hide the confirmation modal
-        function hideConfirmationModal() {
-            confirmationModal.classList.add('hidden');
-        }
-
-        // Function to validate the form client-side
-        function validateForm() {
-            let isValid = true;
-            const requiredInputs = [
-                'event-date', 'start-time', 'end-time',
-                'first-name', 'last-name', 'email'
-            ];
-            const emailInput = document.getElementById('email');
-            const timeValidationErrorEl = document.getElementById('time-validation-error'); // Defined in PHP section
-            timeValidationErrorEl.textContent = ''; // Clear previous time errors
-
-            // Clear all previous error messages and red borders
-            document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
-            document.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
-
-            requiredInputs.forEach(id => {
-                const input = document.getElementById(id);
-                const errorEl = document.getElementById(id + '-error');
-                if (input && input.value.trim() === '') {
-                    input.classList.add('border-red-500');
-                    if (errorEl) errorEl.textContent = 'This field is required.';
-                    isValid = false;
-                }
-            });
-
-            // Email format validation
-            if (emailInput && emailInput.value.trim() !== '' && !emailInput.checkValidity()) {
-                emailInput.classList.add('border-red-500');
-                const errorEl = document.getElementById('email-error');
-                if (errorEl) errorEl.textContent = 'Please enter a valid email address.';
-                isValid = false;
-            }
-
-            // Time validation (End time must be after start time)
-            const startTimeInput = document.getElementById('start-time');
-            const endTimeInput = document.getElementById('end-time');
-            if (startTimeInput && endTimeInput && startTimeInput.value && endTimeInput.value) {
-                const startDate = new Date(`1970-01-01T${startTimeInput.value}:00`);
-                const endDate = new Date(`1970-01-01T${endTimeInput.value}:00`);
-                if (endDate <= startDate) {
-                    endTimeInput.classList.add('border-red-500');
-                    if (timeValidationErrorEl) timeValidationErrorEl.textContent = 'End time must be after start time.';
-                    isValid = false;
-                }
-            }
-
-            // Date in the past validation (from PHP, but re-validate client-side for dynamic changes)
-            const eventDateInput = document.getElementById('event-date');
-            if (eventDateInput && eventDateInput.value) {
-                const selectedDate = new Date(eventDateInput.value + 'T00:00:00'); // Use T00:00:00 to avoid timezone issues
-                const today = new Date();
-                today.setHours(0, 0, 0, 0); // Reset time for accurate date comparison
-
-                if (selectedDate < today) {
-                    eventDateInput.classList.add('border-red-500');
-                    const errorEl = document.getElementById('event-date-error');
-                    if (errorEl) errorEl.textContent = 'Selected date cannot be in the past.';
-                    isValid = false;
-                }
-            }
-
-
-            return isValid;
-        }
-
-
-        // Handle form submission: Show modal first
-        reservationForm.addEventListener('submit', function (e) {
+        // The AJAX submission script remains the same
+        document.getElementById('reservationForm').addEventListener('submit',  function ( e ) {
             e.preventDefault(); // Prevent default form submission
 
-            if (validateForm()) {
-                updateSummary(); // Ensure summary is up-to-date before showing modal
-                showConfirmationModal();
-            } else {
-                responseMessageEl.className = 'mt-2 text-red-400 font-semibold text-xs';
-                responseMessageEl.textContent = 'Please correct the errors in the form.';
-            }
-        });
-
-        // Handle "Confirm Booking" button click in the modal
-        modalConfirmButton.addEventListener('click', function () {
-            hideConfirmationModal(); // Hide the modal immediately
-
-            const formData = new FormData(reservationForm);
-
-            responseMessageEl.className = 'mt-2 text-blue-400 font-semibold text-xs';
-            responseMessageEl.textContent = 'Submitting your reservation request...';
-            // Disable submit button during submission
-            document.getElementById('submit-button').disabled = true;
+             const  form = e.target;
+             const  formData = new FormData(form);
 
             fetch('reservation_manage.php', {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest' // Identify as AJAX request
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    // If server responds with an error status (e.g., 400, 500)
-                    return response.text().then(text => { throw new Error(text || 'Network response was not ok.'); });
-                }
-                return response.text(); // Expecting 'success' or an error message string
-            })
-            .then(data => {
-                const trimmedData = data.trim();
-                if (trimmedData === 'success') {
-                    responseMessageEl.className = 'mt-2 text-green-400 font-semibold text-xs';
-                    responseMessageEl.textContent = 'Reservation request submitted successfully! Redirecting...';
-                    reservationForm.reset(); // Reset the form
-                    // Redirect after a short delay
-                    setTimeout(() => {
-                        window.location.href = 'users/user_dashboard.php'; // Or wherever you want to redirect
-                    }, 2000);
+            .then( response   =>  response.text())
+            .then( data   =>  {
+                 const  trimmed = data.trim(); // Remove extra spaces or newlines
+
+                if (trimmed === 'success') {
+                    alert("Successfully submitted, waiting for the confirmation.");
+                    form.reset(); // Reset the form
+                    window.location.href = 'users/user_dashboard.php'; // Redirect
                 } else {
-                    responseMessageEl.className = 'mt-2 text-red-400 font-semibold text-xs';
-                    responseMessageEl.textContent = `Submission failed: ${trimmedData}`;
+                    alert("An error occurred: " + trimmed);
                 }
             })
-            .catch(error => {
-                console.error('Error submitting reservation:', error);
-                responseMessageEl.className = 'mt-2 text-red-400 font-semibold text-xs';
-                responseMessageEl.textContent = `An error occurred: ${error.message}`;
-            })
-            .finally(() => {
-                // Re-enable submit button, but only if form is valid again after potential re-entry
-                // Or if we decide to re-enable it on error
-                 if (validateForm()) { // Re-validate to ensure it should be enabled
-                     document.getElementById('submit-button').disabled = false;
-                 } else {
-                     document.getElementById('submit-button').disabled = true;
-                 }
+            .catch( error   =>  {
+                console.error('Error:', error);
+                alert('An error occurred while submitting the reservation.');
             });
         });
 
-        // Handle "Cancel" button click in the modal
-        modalCancelButton.addEventListener('click', hideConfirmationModal);
 
-
-        // The summary calculation script remains the same, adjusted for new validation flow
-        document.addEventListener('DOMContentLoaded', function () {
-            const eventDateInput = document.getElementById('event-date');
-            const startTimeInput = document.getElementById('start-time');
-            const endTimeInput = document.getElementById('end-time');
-            const summarySection = document.getElementById('reservation-summary');
-            const submitButton = document.getElementById('submit-button');
+        // The summary calculation script remains the same
+        document.addEventListener('DOMContentLoaded',  function () {
+             const  eventDateInput = document.getElementById('event-date');
+             const  startTimeInput = document.getElementById('start-time');
+             const  endTimeInput = document.getElementById('end-time');
+             const  summarySection = document.getElementById('reservation-summary');
+             const  submitButton = document.getElementById('submit-button');
 
             // Summary elements
-            const summaryDateEl = document.getElementById('summary-event-date');
-            const summaryStartEl = document.getElementById('summary-start-time');
-            const summaryEndEl = document.getElementById('summary-end-time');
-            const summaryTotalCostEl = document.getElementById('summary-total-cost');
-            const summaryErrorEl = document.getElementById('summary-error');
-            const venuePriceEl = document.getElementById('summary-venue-price');
-            // Ensure venuePricePerHour is correctly parsed from the data attribute
-            const venuePricePerHour = parseFloat(venuePriceEl?.dataset.price || '0');
+             const  summaryDateEl = document.getElementById('summary-event-date');
+             const  summaryStartEl = document.getElementById('summary-start-time');
+             const  summaryEndEl = document.getElementById('summary-end-time');
+             const  summaryTotalCostEl = document.getElementById('summary-total-cost');
+             const  summaryErrorEl = document.getElementById('summary-error');
+             const  venuePriceEl = document.getElementById('summary-venue-price');
+             const  venuePricePerHour = parseFloat(venuePriceEl?.dataset.price || 0); // Use actual price from PHP
 
-            // Time validation error message element
-            const timeValidationErrorEl = document.getElementById('time-validation-error');
-
+             // Time validation error message element
+              const  timeValidationErrorEl = document.getElementById('time-validation-error');
 
             // Function to format time (e.g., 14:30 -> 2:30 PM)
-            function formatTime(timeString) {
+             function  formatTime( timeString ) {
                 if (!timeString) return '--';
-                try {
-                    const [hours, minutes] = timeString.split(':');
-                    const date = new Date();
-                    date.setHours(hours, minutes, 0);
-                    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-                } catch (e) {
-                    console.error("Error formatting time:", e);
-                    return timeString; // Fallback to original string
-                }
+                 const  [hours, minutes] = timeString.split(':');
+                 const  date = new Date();
+                date.setHours(hours, minutes, 0);
+                return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
             }
 
-            // Function to format date (e.g., 2024-12-31 -> Dec 31, 2024)
-            function formatDate(dateString) {
+             // Function to format date (e.g., 2024-12-31 -> Dec 31, 2024)
+             function  formatDate( dateString ) {
                 if (!dateString) return '--';
                 try {
-                    const date = new Date(dateString + 'T00:00:00'); // Avoid timezone issues by specifying time
+                     const  date = new Date(dateString + 'T00:00:00'); // Avoid timezone issues by specifying time
                     return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
                 } catch (e) {
                     console.error("Error formatting date:", e);
@@ -776,68 +884,64 @@ $voucher_value = get_value('voucher_code');
 
 
             // Function to calculate duration in hours
-            function calculateDuration(start, end) {
+             function  calculateDuration( start ,  end ) {
                 if (!start || !end) return 0;
                 try {
-                    const startDate = new Date(`1970-01-01T${start}:00`);
-                    const endDate = new Date(`1970-01-01T${end}:00`);
-                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate <= startDate) {
+                     const  startDate = new Date(`1970-01-01T${start}:00`);
+                         const  endDate = new Date(`1970-01-01T${end}:00`);
+                    if (isNaN(startDate) || isNaN(endDate) || endDate <= startDate) {
                         return 0; // Invalid or end time not after start time
                     }
-                    const diffMillis = endDate - startDate;
+                     const  diffMillis = endDate - startDate;
                     return diffMillis / (1000 * 60 * 60); // Convert milliseconds to hours
                 } catch (e) {
-                    console.error("Error calculating duration:", e);
+                     console.error("Error calculating duration:", e);
                     return 0;
                 }
             }
 
             // Function to update summary and total cost
-            function updateSummary() {
-                const eventDate = eventDateInput.value;
-                const startTime = startTimeInput.value;
-                const endTime = endTimeInput.value;
-                let isTimeValid = true;
-                let timeErrorMsg = '';
-
-                // Reset time validation message and border
-                if (timeValidationErrorEl) timeValidationErrorEl.textContent = '';
-                endTimeInput.classList.remove('border-red-500');
-
+             function  updateSummary() {
+                  const  eventDate = eventDateInput.value;
+                 const  startTime = startTimeInput.value;
+                 const  endTime = endTimeInput.value;
+                 let  isTimeValid = true;
+                  let  timeErrorMsg = '';
 
                 // Basic validation: End time must be after start time
                 if (startTime && endTime) {
-                    const startDate = new Date(`1970-01-01T${startTime}:00`);
-                    const endDate = new Date(`1970-01-01T${endTime}:00`);
-                    if (endDate <= startDate) {
-                        isTimeValid = false;
-                        timeErrorMsg = 'End time must be after start time.';
-                        endTimeInput.classList.add('border-red-500');
+                      const  startDate = new Date(`1970-01-01T${startTime}:00`);
+                     const  endDate = new Date(`1970-01-01T${endTime}:00`);
+                     if (endDate <= startDate) {
+                         isTimeValid = false;
+                         timeErrorMsg = 'End time must be after start time.';
+                         endTimeInput.classList.add('border-red-500');
+                     } else {
+                        endTimeInput.classList.remove('border-red-500');
                     }
+                } else {
+                     // Clear potential border if one time is missing
+                    endTimeInput.classList.remove('border-red-500');
                 }
 
                 // Update time validation message
                 if (timeValidationErrorEl) {
                     timeValidationErrorEl.textContent = timeErrorMsg;
-                }
+                 }
 
                 // Show summary only if date, start, and end times are selected and valid
                 if (eventDate && startTime && endTime && isTimeValid && venuePricePerHour >= 0) {
                     summarySection.classList.remove('hidden');
 
-                    const durationHours = calculateDuration(startTime, endTime);
-                    const totalCost = durationHours * venuePricePerHour;
+                     const  durationHours = calculateDuration(startTime, endTime);
+                     const  totalCost = durationHours * venuePricePerHour;
 
                     summaryDateEl.textContent = formatDate(eventDate);
                     summaryStartEl.textContent = formatTime(startTime);
                     summaryEndEl.textContent = formatTime(endTime);
                     summaryTotalCostEl.textContent = `₱ ${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                     summaryErrorEl.textContent = ''; // Clear previous errors
-
-                    // Only enable submit if the summary is valid and there are no *client-side* validation errors
-                    const allFormFieldsValid = validateForm(); // Re-run all client-side validation
-                    submitButton.disabled = !(allFormFieldsValid && isTimeValid);
-
+                    submitButton.disabled = false; // Enable submit button
 
                 } else {
                     // Hide summary or show placeholder text if inputs are incomplete/invalid
@@ -851,9 +955,9 @@ $voucher_value = get_value('voucher_code');
                     if (!isTimeValid && timeErrorMsg) {
                         summaryErrorEl.textContent = timeErrorMsg;
                     } else if (venuePricePerHour < 0){
-                        summaryErrorEl.textContent = 'Invalid venue price.';
-                    } else {
-                        summaryErrorEl.textContent = 'Please select date and valid start/end times.';
+                         summaryErrorEl.textContent = 'Invalid venue price.';
+                     } else {
+                         summaryErrorEl.textContent = 'Please select date and valid start/end times.';
                     }
                 }
             }
@@ -865,6 +969,19 @@ $voucher_value = get_value('voucher_code');
 
             // Initial summary update on page load (in case of pre-filled values)
             updateSummary();
+
+             // Optional: Add form submission validation here if needed before sending to PHP
+             /*
+             document.getElementById('reservation-form').addEventListener('submit', function(event) {
+                 // Example: Ensure times are still valid
+                 if (!calculateDuration(startTimeInput.value, endTimeInput.value) > 0) {
+                     alert('Please ensure the end time is after the start time.');
+                     event.preventDefault(); // Stop submission
+                     return false;
+                 }
+                 // Add other client-side checks if necessary
+             });
+             */
 
              // --- Optional: AJAX Check for Unavailable Dates ---
              // This requires a separate PHP endpoint (e.g., check_availability.php)
