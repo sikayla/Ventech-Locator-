@@ -1,4 +1,4 @@
-<?php
+<<?php
 // **1. Start Session**
 session_start();
 
@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     header("Location: client_login.php"); // Adjust path if client_login.php is elsewhere
     exit;
 }
-$loggedInOwnerUserId = $_SESSION['user_id'];
+$loggedInUserId = $_SESSION['user_id']; // Renamed for clarity, as it could be 'client' or 'owner'
 
 // **4. Check if PDO connection is available**
 if (!isset($pdo) || !$pdo instanceof PDO) {
@@ -18,22 +18,23 @@ if (!isset($pdo) || !$pdo instanceof PDO) {
     die("Sorry, we're experiencing technical difficulties with the database. Please try again later.");
 }
 
-// **5. Fetch Logged-in User (Owner) Details**
+// **5. Fetch Logged-in User Details**
 try {
     $stmt = $pdo->prepare("SELECT id, username, role FROM users WHERE id = ?");
-    $stmt->execute([$loggedInOwnerUserId]);
-    $owner = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->execute([$loggedInUserId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$owner) {
-        error_log("Invalid user_id in session: " . $loggedInOwnerUserId);
+    if (!$user) {
+        error_log("Invalid user_id in session: " . $loggedInUserId);
         session_unset();
         session_destroy();
         header("Location: client_login.php?error=invalid_session"); // Adjust path
         exit;
     }
-    // IMPORTANT: Ensure the user's role is 'owner' for this dashboard
-    if ($owner['role'] !== 'owner') {
-         error_log("User ID {$loggedInOwnerUserId} attempted to access client dashboard with role: {$owner['role']}");
+    // IMPORTANT: Ensure the user's role is 'client' for this dashboard
+    // CHANGED: From 'owner' to 'client' to match client_login.php
+    if ($user['role'] !== 'client') {
+         error_log("User ID {$loggedInUserId} attempted to access client dashboard with role: {$user['role']}");
          session_unset();
          session_destroy();
          header("Location: client_login.php?error=unauthorized_access"); // Adjust path
@@ -41,7 +42,7 @@ try {
     }
 
 } catch (PDOException $e) {
-    error_log("Error fetching user details for user ID {$loggedInOwnerUserId}: " . $e->getMessage());
+    error_log("Error fetching user details for user ID {$loggedInUserId}: " . $e->getMessage());
     die("Error loading your information. Please try refreshing the page or contact support.");
 }
 
@@ -53,7 +54,7 @@ try {
     $allowed_statuses = ['all', 'open', 'closed'];
 
     $sql = "SELECT id, title, price, status, reviews, image_path, created_at FROM venue WHERE user_id = ?";
-    $params = [$loggedInOwnerUserId];
+    $params = [$loggedInUserId]; // Use $loggedInUserId for consistency
 
     if (in_array($status_filter, $allowed_statuses) && $status_filter !== 'all') {
         $sql .= " AND status = ?";
@@ -67,7 +68,7 @@ try {
     $venue_ids_owned = array_column($venues, 'id');
 
 } catch (PDOException $e) {
-    error_log("Error fetching venues for user $loggedInOwnerUserId (status: $status_filter): " . $e->getMessage());
+    error_log("Error fetching venues for user $loggedInUserId (status: $status_filter): " . $e->getMessage());
 }
 
 
@@ -94,7 +95,7 @@ if (!empty($venue_ids_owned)) {
         $cancelled_reservations_count = $stmtCancelledBookings->fetchColumn();
 
     } catch (PDOException $e) {
-        error_log("Error fetching dashboard counts for owned venues (Owner ID: $loggedInOwnerUserId): " . $e->getMessage());
+        error_log("Error fetching dashboard counts for owned venues (User ID: $loggedInUserId): " . $e->getMessage());
     }
 }
 
@@ -120,7 +121,7 @@ if (!empty($venue_ids_owned)) {
          $recent_venue_reservations = $stmt_reservations->fetchAll(PDO::FETCH_ASSOC);
 
      } catch (PDOException $e) {
-         error_log("Error fetching recent reservations for owned venues (Owner ID: $loggedInOwnerUserId): " . $e->getMessage());
+         error_log("Error fetching recent reservations for owned venues (User ID: $loggedInUserId): " . $e->getMessage());
      }
 }
 
@@ -132,13 +133,13 @@ if (isset($_GET['new_venue']) && $_GET['new_venue'] == 'true') {
     $_SESSION['new_venue_message'] = "Venue successfully added!";
     try {
         $stmtLastVenue = $pdo->prepare("SELECT id FROM venue WHERE user_id = ? ORDER BY created_at DESC LIMIT 1");
-        $stmtLastVenue->execute([$loggedInOwnerUserId]);
+        $stmtLastVenue->execute([$loggedInUserId]);
         $lastVenue = $stmtLastVenue->fetch(PDO::FETCH_ASSOC);
         if ($lastVenue) {
              $_SESSION['new_venue_id_for_link'] = $lastVenue['id'];
         }
     } catch (PDOException $e) {
-        error_log("Error fetching last venue ID for user {$loggedInOwnerUserId}: " . $e->getMessage());
+        error_log("Error fetching last venue ID for user {$loggedInUserId}: " . $e->getMessage());
     }
     // Redirect to clean the URL, preventing message from reappearing on refresh
     header("Location: client_dashboard.php");
@@ -355,7 +356,7 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
             </ul>
 
             <ul class="flex items-center space-x-4 ml-6">
-                <?php if ($owner): ?>
+                <?php if ($user): // Changed $owner to $user ?>
                     <li class="relative group cursor-pointer">
                         <div class="notification-icon-container inline-block">
                             <a href="<?php echo htmlspecialchars($reservationManagePath); ?>?status_filter=pending" class="text-gray-700 hover:text-[#ff5722] transition-colors" title="View Pending Reservations">
@@ -377,7 +378,7 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
                         </div>
                     </li>
                     <li class="cursor-pointer">
-                        <span class="hidden lg:inline text-gray-700">Welcome, <strong class="font-semibold text-[#ff5722]"><?= htmlspecialchars($owner['username'] ?? 'Owner') ?></strong>!</span>
+                        <span class="hidden lg:inline text-gray-700">Welcome, <strong class="font-semibold text-[#ff5722]"><?= htmlspecialchars($user['username'] ?? 'Client') ?></strong>!</span>
                     </li>
                     <li class="cursor-pointer">
                         <a href="<?php echo htmlspecialchars($logoutPath); ?>" class="bg-[#ff5722] text-white hover:bg-[#e64a19] py-1.5 px-4 rounded-md text-sm font-medium transition duration-150 ease-in-out shadow-sm flex items-center">
@@ -438,7 +439,7 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
             </section>
 
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
-                <?php echo htmlspecialchars($owner['username'] ?? 'Owner'); ?> Dashboard
+                <?php echo htmlspecialchars($user['username'] ?? 'Client'); // Changed $owner to $user ?> Dashboard
             </h1>
 
             <?php if (!empty($new_venue_message)): ?>
@@ -836,7 +837,7 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
                 //     .catch(error => console.error('Error fetching client notification count:', error));
             }
 
-            // NEW: Fetch unread chat messages count for the owner
+            // NEW: Fetch unread chat messages count for the client
             function fetchUnreadChatMessagesCount() {
                 const chatBadgeDesktop = document.getElementById('chat-notification-count-badge');
                 const chatBadgeMobile = document.getElementById('mobile-chat-notification-count-badge');
@@ -872,10 +873,6 @@ $deleteVenueEndpoint = '/ventech_locator/client/delete_venue.php';
 
             // Initial calls for notifications
             fetchClientNotificationCount(); // For pending reservations (PHP-rendered)
-            fetchUnreadChatMessagesCount(); // For chat messages (AJAX)
-
-            // Set intervals for periodic updates (e.g., every 10 seconds)
-            // setInterval(fetchClientNotificationCount, 10000); // If you want to make pending reservations dynamic
             setInterval(fetchUnreadChatMessagesCount, 10000); // Update chat notification every 10 seconds
 
 

@@ -1,10 +1,10 @@
 <?php
 // Include the database connection and config files from the 'includes' folder
 // Adjust paths as needed based on your file structure
-// IMPORTANT: Assuming client_login.php is now directly in 'ventech_locator/'
-// and 'includes' folder is also directly in 'ventech_locator/'
-include_once('includes/db_connection.php');
-// include_once('includes/config.php'); // Uncomment if you have a config file and need it
+// IMPORTANT: client_login.php is in 'ventech_locator/client/'
+// and 'includes' folder is in 'ventech_locator/'
+include_once('../includes/db_connection.php'); // Go up one directory to reach 'ventech_locator/', then into 'includes'
+// include_once('../includes/config.php'); // Uncomment if you have a config file and need it
 
 // Start session for login
 session_start();
@@ -59,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         // This is necessary because client_login.php might be loaded in an iframe.
                         echo '<script type="text/javascript">';
                         echo 'if (window.parent && window.parent.location) {';
-                        // Updated path: client_dashboard.php is expected directly under /ventech_locator/
+                        // Path: client_dashboard.php is expected directly under /ventech_locator/
                         echo '    window.parent.location.href = "/ventech_locator/client_dashboard.php";';
                         echo '} else {';
                         echo '    window.location.href = "/ventech_locator/client_dashboard.php";'; // Fallback if not in iframe
@@ -84,12 +84,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // Determine the path to the client signup page
-// IMPORTANT: Assuming client_signup.php is also directly in 'ventech_locator/'
-$clientSignupLink = '/ventech_locator/client_signup.php';
+// IMPORTANT: Assuming client_signup.php is also in 'ventech_locator/client/'
+$clientSignupLink = '/ventech_locator/client/client_signup.php';
 
 // Determine the path to the forgot password page
-// IMPORTANT: Assuming forgot_password.php is also directly in 'ventech_locator/'
-$forgotPasswordLink = '/ventech_locator/forgot_password.php';
+// IMPORTANT: Assuming forgot_password.php is also in 'ventech_locator/client/'
+$forgotPasswordLink = '/ventech_locator/client/forgot_password.php';
 
 ?>
 <!DOCTYPE html>

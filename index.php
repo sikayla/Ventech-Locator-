@@ -229,7 +229,7 @@ function extractPlaceNameFromGoogleMapsUrl($url) {
                                 <a href="javascript:void(0);" onclick="openUserLoginModal();" class="block px-4 py-2 text-base text-gray-200 hover:bg-yellow-600 hover:text-white transition-colors duration-150 rounded-t-md" role="menuitem">User Login</a>
                                 <a href="javascript:void(0);" onclick="openUserSignupModal();" class="block px-4 py-2 text-base text-gray-200 hover:bg-yellow-600 hover:text-white transition-colors duration-150" role="menuitem">User Signup</a>
                                 <a href="javascript:void(0);" onclick="openClientLoginModal();" class="block px-4 py-2 text-base text-gray-200 hover:bg-yellow-600 hover:text-white transition-colors duration-150" role="menuitem">Client/Owner Login</a>
-                                <a href="/ventech_locator/admin/login.php" class="block px-4 py-2 text-base text-gray-200 hover:bg-yellow-600 hover:text-white transition-colors duration-150" role="menuitem">Admin Login</a>
+                                <a href="/ventech_locator/admin/admin_login.php" class="block px-4 py-2 text-base text-gray-200 hover:bg-yellow-600 hover:text-white transition-colors duration-150" role="menuitem">Admin Login</a>
                             </div>
                         </div>
                     <?php endif; ?>
