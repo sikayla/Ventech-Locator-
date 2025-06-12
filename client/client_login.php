@@ -1,8 +1,10 @@
 <?php
 // Include the database connection and config files from the 'includes' folder
 // Adjust paths as needed based on your file structure
-include_once('../includes/db_connection.php'); // Assuming includes folder is one level up
-// include_once('../includes/config.php'); // Uncomment if you have a config file and need it
+// IMPORTANT: Assuming client_login.php is now directly in 'ventech_locator/'
+// and 'includes' folder is also directly in 'ventech_locator/'
+include_once('includes/db_connection.php');
+// include_once('includes/config.php'); // Uncomment if you have a config file and need it
 
 // Start session for login
 session_start();
@@ -54,10 +56,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         session_regenerate_id(true);
 
                         // Instead of header() redirect, use JavaScript to redirect the parent window
-                        // This is necessary because client_login.php is loaded in an iframe.
+                        // This is necessary because client_login.php might be loaded in an iframe.
                         echo '<script type="text/javascript">';
                         echo 'if (window.parent && window.parent.location) {';
-                        echo '    window.parent.location.href = "/ventech_locator/client_dashboard.php";'; // Correct path to dashboard
+                        // Updated path: client_dashboard.php is expected directly under /ventech_locator/
+                        echo '    window.parent.location.href = "/ventech_locator/client_dashboard.php";';
                         echo '} else {';
                         echo '    window.location.href = "/ventech_locator/client_dashboard.php";'; // Fallback if not in iframe
                         echo '}';
@@ -81,16 +84,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 
 // Determine the path to the client signup page
-// Adjust this path based on where client_signup.php is located relative to client_login.php
-$clientSignupLink = '/ventech_locator/client/client_signup.php'; // Assuming client_signup.php is in the same directory
-// If client_signup.php is in the parent directory, you might use:
-// $clientSignupLink = '../client_signup.php';
+// IMPORTANT: Assuming client_signup.php is also directly in 'ventech_locator/'
+$clientSignupLink = '/ventech_locator/client_signup.php';
 
 // Determine the path to the forgot password page
-// Adjust this path based on where forgot_password.php is located relative to client_login.php
-$forgotPasswordLink = 'forgot_password.php'; // Assuming forgot_password.php is in the same directory
-// If forgot_password.php is in a different directory, e.g., 'users', you might use:
-// $forgotPasswordLink = '../users/forgot_password.php';
+// IMPORTANT: Assuming forgot_password.php is also directly in 'ventech_locator/'
+$forgotPasswordLink = '/ventech_locator/forgot_password.php';
 
 ?>
 <!DOCTYPE html>
@@ -107,7 +106,7 @@ $forgotPasswordLink = 'forgot_password.php'; // Assuming forgot_password.php is 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
     body {
-        font-family: 'Poppins', sans-serif;
+        font-family: 'Poppins', sans-serif; /* Changed to Poppins for consistency */
         background-color: #f0f2f5; /* Light grey background */
     }
     /* Custom styles for the login form */
@@ -248,17 +247,6 @@ $forgotPasswordLink = 'forgot_password.php'; // Assuming forgot_password.php is 
         overflow: hidden; /* Ensure indicator stays within bounds */
     }
 
-    .loader-indicator {
-        position: absolute;
-        top: 0;
-        left: -20px; /* Start off-screen to the left */
-        width: 20px; /* Size of the moving dot/line */
-        height: 100%;
-        background-color: #ff5722; /* Orange color for the moving indicator */
-        border-radius: 2px;
-        animation: moveIndicator 2s linear infinite; /* Animation for moving */
-    }
-
     @keyframes moveIndicator {
         0% {
             left: -20px;
@@ -272,7 +260,7 @@ $forgotPasswordLink = 'forgot_password.php'; // Assuming forgot_password.php is 
     }
   </style>
 </head>
-<body>
+<body class="font-poppins">
   <!-- Loading Overlay -->
   <div id="loading-overlay">
       <div class="loader-container">
@@ -286,7 +274,7 @@ $forgotPasswordLink = 'forgot_password.php'; // Assuming forgot_password.php is 
   <div class="flex items-center justify-center bg-white p-6">
     <div class="flex flex-col md:flex-row bg-white rounded-3xl w-full max-w-4xl overflow-hidden">
       <div class="flex flex-col justify-center px-10 py-12 md:w-1/2">
-        <h2 class="font-poppins font-semibold text-2xl mb-3">Client Login</h2>
+        <h2 class="poppins font-semibold text-2xl mb-3">Client Login</h2>
         
         <div class="flex space-x-3 mb-6 social-buttons">
           <button aria-label="Login with Google">G+</button>
@@ -295,7 +283,7 @@ $forgotPasswordLink = 'forgot_password.php'; // Assuming forgot_password.php is 
           <button aria-label="Login with LinkedIn"><i class="fab fa-linkedin-in"></i></button>
         </div>
         <div class="text-center mb-4">
-          <span class="font-poppins font-semibold text-lg text-black">OR</span>
+          <span class="poppins font-semibold text-lg text-black">OR</span>
           <p class="text-xs text-black">Login With Your Email & Password</p>
         </div>
 
@@ -347,7 +335,7 @@ $forgotPasswordLink = 'forgot_password.php'; // Assuming forgot_password.php is 
       </div>
 
       <div class="md:w-1/2 bg-[#00303f] rounded-tr-3xl rounded-br-3xl flex flex-col justify-center items-center px-10 py-12 text-white text-center">
-        <h2 class="font-poppins font-semibold text-2xl mb-3">Hello</h2>
+        <h2 class="poppins font-semibold text-2xl mb-3">Hello</h2>
         <p class="text-xs mb-6">Register to use all features in our site</p>
         <a href="javascript:void(0);" onclick="if (window.parent && window.parent.openClientSignupModal) { window.parent.closeClientLoginModal(); window.parent.openClientSignupModal(); } else { window.location.href='<?= $clientSignupLink ?>'; }" class="border border-white text-white text-xs font-semibold px-6 py-2 rounded-sm hover:bg-white hover:text-[#00303f] transition">
           SIGN UP
